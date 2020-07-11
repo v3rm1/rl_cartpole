@@ -1,6 +1,3 @@
-#TODO: Implement a deep Q network for cartpole using tensorflow
-#TODO: Do not forget to use tensorboard wrappers for visualizing the training parameters.
-
 import os
 import math
 import time
