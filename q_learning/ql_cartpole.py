@@ -3,24 +3,32 @@ import time
 import gym
 import numpy as np
 import pandas as pd
+from logger.score import ScoreLogger
 
-
+# Discretization
 BUCKETS = (1, 1, 6, 12,)
-MAX_EPISODES = 1000
-MIN_ALPHA = 0.1
-MIN_EPSILON = 0.1
+
+# Learning Rate
+ALPHA_MIN = 0.1
+
+# Exploration Exploitation Parameters
+EPSILON_MIN = 0.1
+EPSILON_MAX = 1
+EPSILON_DECAY = 0.9
+
+
 ADAPTIVITY_DIVISOR = 25
 
 
-class Agent():
+class QLAgent():
 
     def __init__(self, environment, discrete_buckets,
                  min_alpha, min_epsilon, adaptivity_div):
         self.action_space = environment.action_space
         self.obs_space = environment.observation_space
         self.discrete_buckets = discrete_buckets
-        self.min_alpha = min_alpha
-        self.min_epsilon = min_epsilon
+        self.alpha = min_alpha
+        self.epsilon = min_epsilon
         self.adaptivity_div = adaptivity_div
         self.gamma = 1
         self.Q = np.zeros(self.discrete_buckets +
@@ -41,8 +49,8 @@ class Agent():
                                )) for i in range(len(observations))]
         return tuple(discretized_obs)
 
-    def choose_action(self, state, epsilon):
-        if np.random.random() <= epsilon:
+    def choose_action(self, state):
+        if np.random.random() <= self.epsilon:
             return self.action_space.sample()
         else:
             return np.argmax(self.Q[state])
@@ -53,59 +61,46 @@ class Agent():
                                           self.Q[state][action])
         return self.Q[state][action]
 
-    def epsilon_update(self, episode_number):
-        return max(self.min_epsilon,
-                   min(1, 1 -
-                       math.log10((episode_number + 1) /
-                                  self.adaptivity_div)))
+    def epsilon_update(self):
+        self.epsilon *= EPSILON_DECAY
+        self.epsilon = max(EPSILON_MIN, self.epsilon)
 
-    def alpha_update(self, episode_number):
-        return max(self.min_alpha,
+    def alpha_update(self, run):
+        return max(self.alpha,
                    min(1, 1 -
-                       math.log10((episode_number + 1) /
+                       math.log10((run + 1) /
                                   self.adaptivity_div)))
 
 
 def main():
 
     env = gym.make('CartPole-v0')
-    cols = ['Episode', 'CartPosition', 'CartVelocity',
-            'PoleAngle', 'PoleTipVelocity', 'Action', 'QValue', 'Reward']
-    proc_df = pd.DataFrame(columns=cols)
-    # env = gym.wrappers.Monitor(env, 'monitors/cartpole1', force=True)
-    agent = Agent(env, BUCKETS, MIN_ALPHA, MIN_EPSILON, ADAPTIVITY_DIVISOR)
-    for episode in range(0, MAX_EPISODES):
-        print("Ongoing episode: {eps:d}".format(eps=episode))
-        current_state = agent.discretize_inputs(env.reset())
-        alpha = agent.alpha_update(episode)
-        epsilon = agent.alpha_update(episode)
-        is_done = False
-        idx = 0
-        while not is_done:
-            # env.render()
-            action = agent.choose_action(current_state, epsilon)
-            obs, reward, is_done, _ = env.step(action)
-            next_state = agent.discretize_inputs(obs)
-            q_latest = agent.q_update(current_state, action, reward,
-                                      next_state, alpha)
-            current_state = next_state
-            idx += 1
-            proc_dict = {
-                'Episode': episode,
-                'CartPosition': obs[0],
-                'CartVelocity': obs[1],
-                'PoleAngle': obs[2],
-                'PoleTipVelocity': obs[3],
-                'Action': action,
-                'QValue': q_latest,
-                'Reward': reward
-            }
-            proc_df = proc_df.append(proc_dict, ignore_index=True)
-    env.close()
-    record_file_path = "./q_learning/records/ql_rec_" \
-        + time.strftime("%m%d_%H%M") \
-        + ".csv"
-    proc_df.to_csv(record_file_path)
+    score_log = ScoreLogger("CartPole-v0")
+    
+    ql_agent = QLAgent(env, BUCKETS, ALPHA_MIN, EPSILON_MIN, ADAPTIVITY_DIVISOR)
+    run = 0
+    while True:
+        run += 1
+        alpha = ql_agent.alpha_update(run)
+        state = env.reset()
+        state = ql_agent.discretize_inputs(state)
+        step = 0
+        done = False
+        while not done:
+            step += 1
+            action = ql_agent.choose_action(state)
+            next_state, reward, done, info = env.step(action)
+            next_state = ql_agent.discretize_inputs(next_state)
+            q_latest = ql_agent.q_update(state, action, reward, next_state, alpha)
+            reward = reward if not done else -reward
+            state = next_state
+            if done:
+                print("Run: {0}\nEpsilon: {1}\tScore: {2}".format(run, ql_agent.epsilon, step))
+                score_log.add_score(step, run)
+                break
+            ql_agent.epsilon_update()
+        
+
 
 
 if __name__ == "__main__":
