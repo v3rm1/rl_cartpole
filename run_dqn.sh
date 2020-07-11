@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --time=12:00:00
+#SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --job-name=dqn_cartpole
-#SBATCH --mem=5000
+#SBATCH --mem=7000
 module load Python/3.6.4-foss-2018a
 module load CUDA/9.1.85
 module load Boost/1.66.0-foss-2018a-Python-3.6.4
@@ -12,5 +12,5 @@ pip install pycuda --user
 pip install keras --user
 pip install matplotlib --user
 pip install gym --user
-pip install -e '.[atari]' --user
+pip install pandas --user
 python3 ./dqn/dqn_cartpole.py
