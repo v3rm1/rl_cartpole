@@ -40,13 +40,9 @@ class DQNAgent:
     def network(self):
         self.model = keras.Sequential()
         self.model.add(keras.layers.Dense(
-            24,
+            100,
             input_shape=(self.obs_space,),
-            activation="relu"
-        ))
-        self.model.add(keras.layers.Dense(
-            24,
-            activation="relu"
+            activation="sigmoid"
         ))
         self.model.add(keras.layers.Dense(
             self.action_space,
