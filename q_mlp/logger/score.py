@@ -9,7 +9,7 @@ from time import strftime
 AVG_SCORE = 195
 CONSECUTIVE_RUNS = 500
 
-SCORES_DIR = os.path.join(os.getcwd(), "q_learning/logger/scores/")
+SCORES_DIR = os.path.join(os.getcwd(), "dqn/logger/scores/")
 SCORE_CSV = os.path.join(SCORES_DIR,
                          'score_' + strftime("%Y%m%d_%H%M%S") + ".csv")
 SCORE_PNG = os.path.join(SCORES_DIR,
@@ -18,10 +18,6 @@ SCORE_PNG = os.path.join(SCORES_DIR,
 
 class ScoreLogger:
     """ """
-
-    #SBATCH --time=24:00:00
-    #SBATCH --nodes=1
-    #SBATCH --ntasks=1
     def __init__(self, env_name):
         super().__init__()
         self.scores = deque(maxlen=CONSECUTIVE_RUNS)
@@ -129,3 +125,5 @@ class ScoreLogger:
 
         plt.savefig(output_img, bbox_inches="tight")
         plt.close()
+
+#TODO: Add more plots - epsilon for each run 
