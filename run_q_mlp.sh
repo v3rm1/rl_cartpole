@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=15:00:00
+#SBATCH --time=5:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --job-name=dqn_cartpole
@@ -13,4 +13,4 @@ pip install keras --user
 pip install matplotlib --user
 pip install gym --user
 pip install pandas --user
-python3 ./dqn/dqn_cartpole.py
+python3 ./q_mlp/q_mlp_cartpole.py
