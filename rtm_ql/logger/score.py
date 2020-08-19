@@ -23,7 +23,7 @@ class ScoreLogger:
         self.scores = deque(maxlen=CONSECUTIVE_RUNS)
         self.env_name = env_name
 
-    def add_score(self, score, run):
+    def add_score(self, score, run, gamma, epsilon_decay):
         """
 
         :param score: 
@@ -38,7 +38,9 @@ class ScoreLogger:
                        avg_of_last=CONSECUTIVE_RUNS,
                        show_goal=True,
                        show_trend=True,
-                       show_legend=True)
+                       show_legend=True,
+                       gamma=gamma,
+                       epsilon_decay=epsilon_decay)
         self.scores.append(score)
         avg_score = np.mean(self.scores)
         print("Scores:\nmin: {0}\tmax: {1}\tavg: {2}".format(
@@ -55,7 +57,9 @@ class ScoreLogger:
                            avg_of_last=None,
                            show_goal=False,
                            show_trend=False,
-                           show_legend=False)
+                           show_legend=False, 
+                           gamma=gamma, 
+                           epsilon_decay=epsilon_decay)
             exit()
 
     def _save_csv(self, path, score):
@@ -74,7 +78,7 @@ class ScoreLogger:
             writer.writerow([score])
 
     def _save_png(self, input_scores, output_img, x_label, y_label,
-                  avg_of_last, show_goal, show_trend, show_legend):
+                  avg_of_last, show_goal, show_trend, show_legend, gamma, epsilon_decay):
         """
 
         :param input_scores: 
@@ -116,7 +120,7 @@ class ScoreLogger:
                      linestyle="-.",
                      label="Trend line")
 
-        plt.title(self.env_name)
+        plt.title(self.env_name + "_gamma_" + str(gamma) + "_eps_decay_" + str(epsilon_decay))
         plt.xlabel(x_label)
         plt.ylabel(y_label)
 

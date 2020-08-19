@@ -98,7 +98,7 @@ class DQNAgent:
 def main():
     """ """
     env = gym.make("CartPole-v0")
-    score_log = ScoreLogger("CartPole-v0")
+    # score_log = ScoreLogger("CartPole-v0")
 
     dqn_agent = DQNAgent(env)
     for ep in range(EPISODES):
@@ -120,7 +120,7 @@ def main():
             if done:
                 print("Episode: {0}\nEpsilon: {1}\tScore: {2}".format(
                     ep, dqn_agent.epsilon, step))
-                score_log.add_score(step, ep)
+                # score_log.add_score(step, ep)
                 break
             dqn_agent.experience_replay()
 

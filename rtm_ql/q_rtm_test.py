@@ -7,7 +7,7 @@ from pyTsetlinMachine.tm import QRegressionTsetlinMachine
 from discretizer import CustomDiscretizer
 
 # Reward decay
-GAMMA = 0.9
+GAMMA = 1
 
 # Experience-Replay Memory Parameters
 MEMORY_SIZE = 100000
@@ -16,10 +16,10 @@ BATCH_SIZE = 25
 # Exploration-Exploitation Parameters
 EPSILON_MIN = 0.01
 EPSILON_MAX = 1.0
-EPSILON_DECAY = 0.9
+EPSILON_DECAY = 0.5
 
 # Number Of Episodes to run
-EPISODES = 200
+EPISODES = 300
 
 
 class RTMQL:
@@ -32,41 +32,43 @@ class RTMQL:
         self.memory = deque(maxlen=MEMORY_SIZE)
 
         self.epsilon = EPSILON_MAX
-        self.agent = self.tm_model()
+        self.agent_1 = self.tm_model()
+        self.agent_2 = self.tm_model()
 
     def tm_model(self):
-        self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=100, T=100*8, s=2.75, reward=1, gamma=0.9, max_score=200, number_of_actions=2)
+        self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=100, T=100*8, s=2.75, reward=1, gamma=GAMMA, max_score=200, number_of_actions=2)
         self.tm_agent.number_of_patches = 2
         self.tm_agent.number_of_ta_chunks = 2
         self.tm_agent.number_of_features = 16
-
         return self.tm_agent
 
     def memorize(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
     def act(self, state):
-        print("Epsilon: {}".format(self.epsilon))
+        # print("Epsilon: {}".format(self.epsilon))
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.action_space)
-        q_values = [self.agent.predict(state)]
+        q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
         print("Q Value: {}".format(q_values))
         return np.argmax(q_values)
 
     def experience_replay(self):
+        self.epsilon = EPSILON_MAX
         if len(self.memory) < BATCH_SIZE:
             return
         batch = random.sample(self.memory, BATCH_SIZE)
-        q_update = np.zeros((2,))
         for state, action, reward, next_state, done in batch:
-            q_update[action] = reward
-            print("q_update before discount:{}".format(q_update))
+            q_update = reward
+            # print("q_update before discount:{}".format(q_update))
             if not done:
-                q_update[action] = reward + GAMMA * self.agent.predict(state)[action]
-                print("q_update after discount:{}".format(q_update))
-        q_values = self.agent.predict(state)
-        q_values[action] = np.max(q_update)
-        self.agent.fit(state, q_values)
+                q_update = reward + GAMMA * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
+                # print("q_update after discount:{}".format(q_update))
+            q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+            q_values[action] = q_update
+            self.agent_1.fit(state, q_values[0])
+            self.agent_2.fit(state, q_values[1])
+        print("Epsilon: {}".format(self.epsilon))
         self.epsilon *= EPSILON_DECAY
         self.epsilon = max(EPSILON_MIN, self.epsilon)
 
@@ -80,7 +82,7 @@ def main():
     prev_actions = []
     total_iter = 0
     for ep in range(EPISODES):
-        print("EPISODE NUMBER: {}".format(ep))
+        # print("EPISODE NUMBER: {}".format(ep))
         state = env.reset()
         state = discretizer.cartpole_discretizer(input_state=state)
         state = np.reshape(state, [1, 2*env.observation_space.shape[0]])
@@ -104,10 +106,10 @@ def main():
             if done:
                 print("Episode: {0}\nEpsilon: {1}\tScore: {2}".format(
                 ep, rtm_agent.epsilon, step))
-                score_log.add_score(step, ep)
+                score_log.add_score(step, ep, GAMMA, EPSILON_DECAY)
                 break
             rtm_agent.experience_replay()
-    print("TOTAL_ITER: {}".format(total_iter))
+    # print("TOTAL_ITER: {}".format(total_iter))
 
 
 if __name__ == "__main__":
