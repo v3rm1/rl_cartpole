@@ -23,17 +23,24 @@ class RTMQL:
         self.replay_batch = config['memory_params']['batch_size']
 
         self.episodes = config['game_params']['episodes']
+        self.reward = config['game_params']['reward']
+        self.max_score = config['game_params']['max_score']
 
         self.gamma = config['learning_params']['gamma']
         
-        self.epsilon = 1
+        self.epsilon = config['learning_params']['EDF']['epsilon_max']
         self.eps_decay = eps_decay_config
+        self.epsilon_min = config['learning_params']['EDF']['epsilon_min']
+
+        self.T = config['qrtm_params']['T']
+        self.s = config['qrtm_params']['s']
+        self.number_of_clauses = config['qrtm_params']['number_of_clauses']
 
         if eps_decay_config == "SEDF":
             self.sedf_alpha = config['learning_params']['SEDF']['tail']
             self.sedf_beta = config['learning_params']['SEDF']['slope']
-            self.sedf_delta = config['learning_params']['SEDF']['gradient']
-            print("Agent configured to use Stretched Exponential Decay Function for Epsilon value.\nAlpha (tail): {}\nBeta (slope): {}\nDelta (gradient): {}".format(self.sedf_alpha, self.sedf_beta, self.sedf_delta))
+            self.sedf_delta = config['learning_params']['SEDF']['tail_gradient']
+            print("Agent configured to use Stretched Exponential Decay Function for Epsilon value.\nAlpha (tail): {}\nBeta (slope): {}\nDelta (tail_gradient): {}".format(self.sedf_alpha, self.sedf_beta, self.sedf_delta))
         else:
             self.epsilon_min = config['learning_params']['EDF']['epsilon_min']
             self.epsilon_max = config['learning_params']['EDF']['epsilon_max']
@@ -51,8 +58,9 @@ class RTMQL:
         self.epsilon = 1.1 - (1 / (np.cosh(math.exp(-(current_ep - self.sedf_alpha * self.episodes) / (self.sedf_beta * self.episodes)))) + (current_ep * self.sedf_delta / self.episodes))
         return min(1, self.epsilon)
 
+
     def tm_model(self):
-        self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=100, T=500*8, s=2.75, reward=1, gamma=self.gamma, max_score=200, number_of_actions=2)
+        self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=self.number_of_clauses, T=self.T, s=self.s, reward=self.reward, gamma=self.gamma, max_score=self.max_score, number_of_actions=self.action_space)
         self.tm_agent.number_of_patches = 2
         self.tm_agent.number_of_ta_chunks = 2
         self.tm_agent.number_of_features = 16
@@ -137,7 +145,7 @@ def main():
                 consecutive_runs=episodes,
                 sedf_alpha=config['learning_params']['SEDF']['tail'],
                 sedf_beta=config['learning_params']['SEDF']['slope'],
-                sedf_delta=config['learning_params']['SEDF']['gradient'],
+                sedf_delta=config['learning_params']['SEDF']['tail_gradient'],
                 edf_epsilon_decay=config['learning_params']['EDF']['epsilon_decay'])
                 break
             rtm_agent.experience_replay(curr_ep)
