@@ -4,6 +4,8 @@ import numpy as np
 import random
 import math
 from collections import deque
+from time import strftime
+from csv import DictWriter, writer
 import gym
 from logger.score import ScoreLogger
 from pyTsetlinMachine.tm import QRegressionTsetlinMachine
@@ -11,7 +13,8 @@ from discretizer import CustomDiscretizer
 
 # Path to file containing all configurations for the variables used by the q-rtm system
 CONFIG_PATH = path.join(path.dirname(path.realpath(__file__)), 'config.yaml')
-
+#
+CONFIG_TEST_SAVE_PATH = path.join(path.dirname(path.realpath(__file__)), 'tested_configs.csv')
 class RTMQL:
     def __init__(self, environment, config, eps_decay_config="EDF"):
         super().__init__()
@@ -104,10 +107,61 @@ def load_config(config_file):
         except yaml.YAMLError as exc:
             print(exc)
 
+def store_config_tested(config_data, win_count, run_date, tested_configs_file_path=CONFIG_TEST_SAVE_PATH):
+    run_dt = run_date
+    # Defining dictionary key mappings
+    field_names = ['decay_fn', 'epsilon_min', 'epsilon_max', 'epsilon_decay', 'alpha', 'beta', 'delta', 'reward_discount', 'mem_size', 'batch_size', 'episodes', 'reward', 'max_score', 'action_space', 'qrtm_n_clauses', 'T', 's', 'wins', 'win_ratio', 'run_date']
+    decay_fn = config_data['learning_params']['epsilon_decay_function']
+    if decay_fn == "SEDF":
+        alpha = config_data['learning_params']['SEDF']['tail']
+        beta = config_data['learning_params']['SEDF']['slope']
+        delta = config_data['learning_params']['SEDF']['tail_gradient']
+        eps_min = 0
+        eps_max = 0
+        eps_decay = 0
+    else:
+        alpha = 0
+        beta = 0
+        delta = 0
+        eps_min = config_data['learning_params']['EDF']['epsilon_min']
+        eps_max = config_data['learning_params']['EDF']['epsilon_max']
+        eps_decay = config_data['learning_params']['EDF']['epsilon_decay']
+    store_config = {
+        'decay_fn': decay_fn,
+        'epsilon_min': eps_min,
+        'epsilon_max': eps_max,
+        'epsilon_decay': eps_decay,
+        'alpha': alpha,
+        'beta': beta,
+        'delta': delta,
+        'reward_discount': config_data['learning_params']['gamma'],
+        'mem_size': config_data['memory_params']['memory_size'],
+        'batch_size': config_data['memory_params']['batch_size'],
+        'episodes': config_data['game_params']['episodes'],
+        'reward': config_data['game_params']['reward'],
+        'max_score': config_data['game_params']['max_score'],
+        'action_space': config_data['game_params']['action_space'],
+        'qrtm_n_clauses': config_data['qrtm_params']['number_of_clauses'],
+        'T': config_data['qrtm_params']['T'],
+        's': config_data['qrtm_params']['s'],
+        'wins': win_count,
+        'win_ratio': win_count/config_data['game_params']['episodes'],
+        'run_date': run_date
+    }
+    # Write to file. Mode a creates file if it does not exist.
+    with open(tested_configs_file_path, 'a+', newline='') as write_obj:
+        # writer = csv.writer(outcsv)
+        # writer.writerow(field_names)
+        print(write_obj.tell())
+        dict_writer = DictWriter(write_obj, fieldnames=field_names)
+        dict_writer.writerow(store_config)
+    return
+
 def main():
     config = load_config(CONFIG_PATH)
     gamma = config['learning_params']['gamma']
     episodes = config['game_params']['episodes']
+    run_dt = strftime("%Y%m%d_%H%M%S")
     epsilon_decay_function = config['learning_params']['epsilon_decay_function']
     print("Configuration file loaded. Creating environment.")
     env = gym.make("CartPole-v0")
@@ -117,6 +171,7 @@ def main():
     print("Initializing Q-RTM Agent.")
     rtm_agent = RTMQL(env, config, epsilon_decay_function)
     prev_actions = []
+    win_ctr = 0
     for curr_ep in range(episodes):
         state = env.reset()
         state = discretizer.cartpole_discretizer(input_state=state)
@@ -136,6 +191,8 @@ def main():
             rtm_agent.memorize(state, action, reward, next_state, done)
             state = next_state
             if done:
+                if step > 195:
+                    win_ctr += 1
                 print("Episode: {0}\nEpsilon: {1}\tScore: {2}".format(
                 curr_ep, rtm_agent.epsilon, step))
                 score_log.add_score(step,
@@ -149,6 +206,8 @@ def main():
                 edf_epsilon_decay=config['learning_params']['EDF']['epsilon_decay'])
                 break
             rtm_agent.experience_replay(curr_ep)
+    print("win_ctr: {}".format(win_ctr))
+    store_config_tested(config, win_ctr, run_dt)
 
 
 if __name__ == "__main__":

@@ -127,7 +127,7 @@ class ScoreLogger:
 
         plt.suptitle(self.env_name + " Gamma: " + str(gamma) + " Epsilon Decay Function: " + str(epsilon_decay_func))
         if epsilon_decay_func == "SEDF":
-            title_str = "alpha: " + str(sedf_alpha) + "\tbeta: " + str(sedf_beta) + "\tdelta: " + str(sedf_delta)
+            title_str = "alpha: " + str(sedf_alpha) + "  beta: " + str(sedf_beta) + "  delta: " + str(sedf_delta)
         else:
             title_str = "Epsilon Decay: " + str(edf_epsilon_decay)
         plt.title(title_str)
