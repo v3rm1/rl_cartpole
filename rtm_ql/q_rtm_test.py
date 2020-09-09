@@ -150,9 +150,9 @@ def store_config_tested(config_data, win_count, run_date, tested_configs_file_pa
     }
     # Write to file. Mode a creates file if it does not exist.
     with open(tested_configs_file_path, 'a+', newline='') as write_obj:
-        # writer = csv.writer(outcsv)
-        # writer.writerow(field_names)
-        print(write_obj.tell())
+        if write_obj.tell() == 0:
+            header_writer = writer(tested_configs_file_path)
+            header_writer.writerow(field_names)
         dict_writer = DictWriter(write_obj, fieldnames=field_names)
         dict_writer.writerow(store_config)
     return
