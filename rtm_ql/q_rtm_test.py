@@ -5,7 +5,7 @@ import random
 import math
 from collections import deque
 from time import strftime
-from csv import DictWriter, writer
+import csv
 import gym
 from logger.score import ScoreLogger
 from pyTsetlinMachine.tm import QRegressionTsetlinMachine
@@ -78,7 +78,7 @@ class RTMQL:
             print("Randomized Action: {}".format(a))
             return a
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
-        print("Q value based Action: {}".format(np.argmax(q_values)))
+        print("Q value based Action: {}\nQ values: {}".format(np.argmax(q_values), q_values))
         return np.argmax(q_values)
 
     def experience_replay(self, episode):
@@ -93,6 +93,7 @@ class RTMQL:
             q_values[action] = q_update
             self.agent_1.fit(state, q_values[0])
             self.agent_2.fit(state, q_values[1])
+            print(q_values)
         if self.eps_decay == "SEDF":
             # STRETCHED EXPONENTIAL EPSILON DECAY
             self.epsilon = self.stretched_exp_eps_decay(episode)
@@ -149,11 +150,12 @@ def store_config_tested(config_data, win_count, run_date, tested_configs_file_pa
         'run_date': run_date
     }
     # Write to file. Mode a creates file if it does not exist.
-    with open(tested_configs_file_path, 'a+', newline='') as write_obj:
-        if write_obj.tell() == 0:
-            header_writer = writer(tested_configs_file_path)
+    if not path.exists(tested_configs_file_path):
+        with open(tested_configs_file_path, 'w', newline='') as write_obj:
+            header_writer = csv.writer(write_obj)
             header_writer.writerow(field_names)
-        dict_writer = DictWriter(write_obj, fieldnames=field_names)
+    with open(tested_configs_file_path, 'a+', newline='') as write_obj:
+        dict_writer = csv.DictWriter(write_obj, fieldnames=field_names)
         dict_writer.writerow(store_config)
     return
 
