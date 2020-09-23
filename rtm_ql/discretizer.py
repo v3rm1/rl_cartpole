@@ -1,48 +1,44 @@
 import numpy as np
 import gym
+import struct
 
 
 class CustomDiscretizer:
     def __init__(self):
         super().__init__()
-    
-    def discretize_position(self, input_position):
-        if input_position < 0:
-            return np.fromiter(np.binary_repr(3, width=2), int)
-        elif input_position > 0:
-            return np.fromiter(np.binary_repr(1, width=2), int)
-        else:
-            return np.fromiter(np.binary_repr(0, width=2), int)
 
-    def discretize_cart_velocity(self, input_cart_velocity):
-        if input_cart_velocity < 0:
-            return np.fromiter(np.binary_repr(3, width=2), int)
-        elif input_cart_velocity > 0:
-            return np.fromiter(np.binary_repr(1, width=2), int)
-        else:
-            return np.fromiter(np.binary_repr(0, width=2), int)
+    @staticmethod
+    def _binarize(float_rep):
+        [bin_str] = struct.unpack(">Q", struct.pack(">d", float_rep))
+        return str(f"{bin_str:064b}")
 
-    def discretize_angle(self, input_angle):
-        if input_angle < 0:
-            return np.fromiter(np.binary_repr(3, width=2), int)
-        elif input_angle > 0:
-            return np.fromiter(np.binary_repr(1, width=2), int)
-        else:
-            return np.fromiter(np.binary_repr(0, width=2), int)
+    @staticmethod
+    def _debinarize(binary_rep):
+        float_num = int(binary_rep, 2).to_bytes(8, byteorder="big")
+        return struct.unpack('>d', float_num)[0]
 
-    def discretize_angular_velocity(self, input_angular_velocity):
-        if input_angular_velocity < 0:
-            return np.fromiter(np.binary_repr(3, width=2), int)
-        elif input_angular_velocity > 0:
-            return np.fromiter(np.binary_repr(1, width=2), int)
-        else:
-            return np.fromiter(np.binary_repr(0, width=2), int)
+    @staticmethod
+    def _binarize(float_rep):
+        [bin_str] = struct.unpack(">Q", struct.pack(">d", float_rep))
+        return np.fromiter(np.binary_repr(bin_str, width=64), int)
 
-    def cartpole_discretizer(self, input_state):
-        op_1 = self.discretize_position(input_state[0])
-        op_2 = self.discretize_cart_velocity(input_state[1])
-        op_3 = self.discretize_angle(input_state[2])
-        op_4 = self.discretize_angular_velocity(input_state[3])
+    @staticmethod
+    def _debinarize(binary_rep):
+        float_num = np.base_repr(binary_rep)
+        return float_num
+
+    def cartpole_binarizer(self, input_state):
+        op_1 = self._binarize(input_state[0])
+        op_2 = self._binarize(input_state[1])
+        op_3 = self._binarize(input_state[2])
+        op_4 = self._binarize(input_state[3])
+        return [op_1, op_2, op_3, op_4]
+
+    def cartpole_debinarizer(self, input_state):
+        op_1 = self._debinarize(input_state[0])
+        op_2 = self._debinarize(input_state[1])
+        op_3 = self._debinarize(input_state[2])
+        op_4 = self._debinarize(input_state[3])
         return [op_1, op_2, op_3, op_4]
 
 
@@ -51,8 +47,9 @@ def test():
     state = env.reset()
     print("Original State: {}".format(state))
     disc = CustomDiscretizer()
-    disc_state = disc.cartpole_discretizer(state)
+    disc_state = disc.cartpole_binarizer(state)
     print("Discretized State: {}".format(disc_state))
+    # print("Discretized State: {}".format(disc.cartpole_debinarizer(disc_state)))
     print("END")
 
 

@@ -1,7 +1,7 @@
 # YAML Config file for RTM-QL agent
 
 learning_params:
-  gamma: 0.9
+  gamma: 1
   EDF:
     epsilon_min: 0.1
     epsilon_max: 1.0
@@ -17,12 +17,14 @@ memory_params:
   batch_size: 30
 
 game_params:
-  episodes: 300
+  episodes: 500
   reward: 1
   max_score: 200
   action_space: 2
 
 qrtm_params:
-  number_of_clauses: 100
+  number_of_features: 256
+  feature_length: 64
+  number_of_clauses: 8000
   T: 4000
   s: 2.75

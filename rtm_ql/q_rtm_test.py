@@ -38,6 +38,7 @@ class RTMQL:
         self.T = config['qrtm_params']['T']
         self.s = config['qrtm_params']['s']
         self.number_of_clauses = config['qrtm_params']['number_of_clauses']
+        self.number_of_features = config['qrtm_params']['number_of_features']
 
         if eps_decay_config == "SEDF":
             self.sedf_alpha = config['learning_params']['SEDF']['tail']
@@ -65,8 +66,8 @@ class RTMQL:
     def tm_model(self):
         self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=self.number_of_clauses, T=self.T, s=self.s, reward=self.reward, gamma=self.gamma, max_score=self.max_score, number_of_actions=self.action_space)
         self.tm_agent.number_of_patches = 2
-        self.tm_agent.number_of_ta_chunks = 2
-        self.tm_agent.number_of_features = 16
+        self.tm_agent.number_of_ta_chunks = int(((self.number_of_features - 1) / 32) + 1)
+        self.tm_agent.number_of_features = self.number_of_features
         return self.tm_agent
 
     def memorize(self, state, action, reward, next_state, done):
@@ -78,7 +79,7 @@ class RTMQL:
             print("Randomized Action: {}".format(a))
             return a
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
-        print("Q value based Action: {}\nQ values: {}".format(np.argmax(q_values), q_values))
+        print("Q value based Action: {}".format(np.argmax(q_values)))
         return np.argmax(q_values)
 
     def experience_replay(self, episode):
@@ -93,7 +94,6 @@ class RTMQL:
             q_values[action] = q_update
             self.agent_1.fit(state, q_values[0])
             self.agent_2.fit(state, q_values[1])
-            print(q_values)
         if self.eps_decay == "SEDF":
             # STRETCHED EXPONENTIAL EPSILON DECAY
             self.epsilon = self.stretched_exp_eps_decay(episode)
@@ -165,6 +165,7 @@ def main():
     episodes = config['game_params']['episodes']
     run_dt = strftime("%Y%m%d_%H%M%S")
     epsilon_decay_function = config['learning_params']['epsilon_decay_function']
+    feature_length = config['qrtm_params']['feature_length']
     print("Configuration file loaded. Creating environment.")
     env = gym.make("CartPole-v0")
     score_log = ScoreLogger("CartPole-v0", episodes)
@@ -176,8 +177,8 @@ def main():
     win_ctr = 0
     for curr_ep in range(episodes):
         state = env.reset()
-        state = discretizer.cartpole_discretizer(input_state=state)
-        state = np.reshape(state, [1, 2*env.observation_space.shape[0]])
+        state = discretizer.cartpole_binarizer(input_state=state)
+        state = np.reshape(state, [1, feature_length * env.observation_space.shape[0]])
         step = 0
         done = False
         while not done:
@@ -187,9 +188,9 @@ def main():
             prev_actions.append(action)
             next_state, reward, done, info = env.step(action)
             reward = reward if not done else -reward
-            next_state = discretizer.cartpole_discretizer(next_state)
+            next_state = discretizer.cartpole_binarizer(next_state)
             next_state = np.reshape(next_state,
-                [1, 2 * env.observation_space.shape[0]])
+                [1, feature_length * env.observation_space.shape[0]])
             rtm_agent.memorize(state, action, reward, next_state, done)
             state = next_state
             if done:
