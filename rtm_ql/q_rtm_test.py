@@ -60,7 +60,7 @@ class RTMQL:
 
     def stretched_exp_eps_decay(self, current_ep):
         self.epsilon = 1.1 - (1 / (np.cosh(math.exp(-(current_ep - self.sedf_alpha * self.episodes) / (self.sedf_beta * self.episodes)))) + (current_ep * self.sedf_delta / self.episodes))
-        return min(1, self.epsilon)
+        return max(min(1, self.epsilon), self.epsilon_min)
 
 
     def tm_model(self):

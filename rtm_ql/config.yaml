@@ -7,9 +7,9 @@ learning_params:
     epsilon_max: 1.0
     epsilon_decay: 0.99
   SEDF:
-    tail: 0.3
+    tail: 0.5
     slope: 0.3
-    tail_gradient: 0.1
+    tail_gradient: 0.3
   epsilon_decay_function: SEDF 
 
 memory_params:
@@ -17,7 +17,7 @@ memory_params:
   batch_size: 30
 
 game_params:
-  episodes: 500
+  episodes: 3000
   reward: 1
   max_score: 200
   action_space: 2
@@ -25,6 +25,6 @@ game_params:
 qrtm_params:
   number_of_features: 256
   feature_length: 64
-  number_of_clauses: 8000
-  T: 4000
+  number_of_clauses: 400
+  T: 200
   s: 2.75
