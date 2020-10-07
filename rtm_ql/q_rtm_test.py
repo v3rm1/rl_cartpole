@@ -111,7 +111,7 @@ def load_config(config_file):
 def store_config_tested(config_data, win_count, run_date, tested_configs_file_path=CONFIG_TEST_SAVE_PATH):
     run_dt = run_date
     # Defining dictionary key mappings
-    field_names = ['decay_fn', 'epsilon_min', 'epsilon_max', 'epsilon_decay', 'alpha', 'beta', 'delta', 'reward_discount', 'mem_size', 'batch_size', 'episodes', 'reward', 'max_score', 'action_space', 'qrtm_n_clauses', 'T', 's', 'wins', 'win_ratio', 'run_date']
+    field_names = ['decay_fn', 'epsilon_min', 'epsilon_max', 'epsilon_decay', 'alpha', 'beta', 'delta', 'reward_discount', 'mem_size', 'batch_size', 'episodes', 'reward', 'max_score', 'action_space', 'qrtm_n_clauses', 'T', 's', 'wins', 'win_ratio', 'run_date', 'bin_length']
     decay_fn = config_data['learning_params']['epsilon_decay_function']
     if decay_fn == "SEDF":
         alpha = config_data['learning_params']['SEDF']['tail']
@@ -147,7 +147,8 @@ def store_config_tested(config_data, win_count, run_date, tested_configs_file_pa
         's': config_data['qrtm_params']['s'],
         'wins': win_count,
         'win_ratio': win_count/config_data['game_params']['episodes'],
-        'run_date': run_date
+        'run_date': run_date,
+        'bin_length':config_data['qrtm_params']['feature_length']
     }
     # Write to file. Mode a creates file if it does not exist.
     if not path.exists(tested_configs_file_path):
@@ -173,11 +174,12 @@ def main():
     discretizer = CustomDiscretizer()
     print("Initializing Q-RTM Agent.")
     rtm_agent = RTMQL(env, config, epsilon_decay_function)
+    bin_len = int(config['qrtm_params']['feature_length'] / 2)
     prev_actions = []
     win_ctr = 0
     for curr_ep in range(episodes):
         state = env.reset()
-        state = discretizer.cartpole_binarizer(input_state=state)
+        state = discretizer.cartpole_binarizer(input_state=state, places=bin_len)
         state = np.reshape(state, [1, feature_length * env.observation_space.shape[0]])
         step = 0
         done = False
@@ -188,7 +190,7 @@ def main():
             prev_actions.append(action)
             next_state, reward, done, info = env.step(action)
             reward = reward if not done else -reward
-            next_state = discretizer.cartpole_binarizer(next_state)
+            next_state = discretizer.cartpole_binarizer(next_state, places=bin_len)
             next_state = np.reshape(next_state,
                 [1, feature_length * env.observation_space.shape[0]])
             rtm_agent.memorize(state, action, reward, next_state, done)
