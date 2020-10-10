@@ -179,7 +179,7 @@ def main():
     win_ctr = 0
     for curr_ep in range(episodes):
         state = env.reset()
-        state = discretizer.cartpole_binarizer(input_state=state, places=bin_len)
+        state = discretizer.cartpole_binarizer(input_state=state, n_bins=bin_len)
         state = np.reshape(state, [1, feature_length * env.observation_space.shape[0]])
         step = 0
         done = False
@@ -190,7 +190,7 @@ def main():
             prev_actions.append(action)
             next_state, reward, done, info = env.step(action)
             reward = reward if not done else -reward
-            next_state = discretizer.cartpole_binarizer(next_state, places=bin_len)
+            next_state = discretizer.cartpole_binarizer(next_state, n_bins=bin_len)
             next_state = np.reshape(next_state,
                 [1, feature_length * env.observation_space.shape[0]])
             rtm_agent.memorize(state, action, reward, next_state, done)
