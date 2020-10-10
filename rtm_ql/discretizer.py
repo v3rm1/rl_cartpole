@@ -9,14 +9,14 @@ class CustomDiscretizer:
 
     def _binarize(self, fp_num, range_min, range_max, n_bins=15):
         binary_rep = np.zeros(shape=n_bins+1, dtype=int)
-        bin_delta = (np.absolute(range_max) + np.absolute(range_min))/n_bins
+        bin_delta = (np.absolute(range_max) + np.absolute(range_min))/(n_bins)
         if fp_num < 0:
             binary_rep[0] = 1
         else:
             binary_rep[0] = 0
         for i in range(n_bins):
             bin_min = range_min + i * bin_delta
-            bin_max = range_min + (i+1) * bin_delta
+            bin_max = (range_min + (i+1) * bin_delta) if i < 15 else range_max
             if bin_min <= fp_num <= bin_max:
                 binary_rep[i] = 1
         return binary_rep

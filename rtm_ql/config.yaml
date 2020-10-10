@@ -25,6 +25,7 @@ game_params:
 qrtm_params:
   # number_of_features = 4 * feature_length ALWAYS
   number_of_features: 64
+  # Including sign bit
   feature_length: 16
   # number_of_clauses = 2 * T ALWAYS
   number_of_clauses: 1000
