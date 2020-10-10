@@ -21,7 +21,7 @@ class CustomDiscretizer:
                 binary_rep[i] = 1
         return binary_rep
 
-    def cartpole_binarizer(self, input_state, n_bins=16):
+    def cartpole_binarizer(self, input_state, n_bins=15):
         op_1 = self._binarize(input_state[0], -3, 3, n_bins)
         op_2 = self._binarize(input_state[1], -500, 500, n_bins)
         op_3 = self._binarize(input_state[2], -42, 42, n_bins)
