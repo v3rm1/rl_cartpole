@@ -1,6 +1,5 @@
 import numpy as np
 import gym
-import struct
 
 
 class CustomDiscretizer:
@@ -8,60 +7,25 @@ class CustomDiscretizer:
         super().__init__()
     
 
-    def _binarize(self, fp_num, places=32):
-        bin_str = []
-        fp_num = np.format_float_positional(fp_num, precision=8)
-        whole, dec = str(fp_num).split(".")
-        dec = 0 if len(str(dec)) == 0 else dec
-        
-        if whole[0] == "-":
-            bin_str.append(1) 
+    def _binarize(self, fp_num, range_min, range_max, n_bins=15):
+        binary_rep = np.zeros(shape=n_bins+1, dtype=int)
+        bin_delta = (np.absolute(range_max) + np.absolute(range_min))/n_bins
+        if fp_num < 0:
+            binary_rep[0] = 1
         else:
-            bin_str.append(0)
+            binary_rep[0] = 0
+        for i in range(n_bins):
+            bin_min = range_min + i * bin_delta
+            bin_max = range_min + (i+1) * bin_delta
+            if bin_min <= fp_num <= bin_max:
+                binary_rep[i] = 1
+        return binary_rep
 
-        whole = int(whole[1:]) if whole[0] == "-" else int(whole)
-        dec = int(dec)
-
-        # res = bin(whole).lstrip("0b") + "."
-        res = bin(whole).lstrip("0b")
-
-        if len(bin(whole).lstrip("0b")) <= places:
-            for bin_len_ctr in range(places - len(bin(whole).lstrip("0b")) - 1):
-                bin_str.append(0)
-
-        for dec_len_ctr in range(places):
-            whole, dec = str(np.format_float_positional((self._decimal_converter(dec))* 2, precision=8)).split(".")
-            dec = 0 if len(str(dec)) == 0 else int(dec)
-            dec = int(dec)
-            res += whole
-
-        for bin_res in res:
-            bin_str.append(bin_res)
-        bin_str = np.fromiter(bin_str, int)
-        return bin_str
-
-    @staticmethod
-    def _decimal_converter(num):
-        while num > 1:
-            num /= 10
-        return num
-
-
-    # @staticmethod
-    # def _binarize(float_rep):
-    #     [bin_str] = struct.unpack(">Q", struct.pack(">d", float_rep))
-    #     return np.fromiter(np.binary_repr(bin_str, width=64), int)
-
-    # @staticmethod
-    # def _debinarize(binary_rep):
-    #     float_num = np.base_repr(binary_rep)
-    #     return float_num
-
-    def cartpole_binarizer(self, input_state, places=16):
-        op_1 = self._binarize(input_state[0], places)
-        op_2 = self._binarize(input_state[1], places)
-        op_3 = self._binarize(input_state[2], places)
-        op_4 = self._binarize(input_state[3], places)
+    def cartpole_binarizer(self, input_state, n_bins=16):
+        op_1 = self._binarize(input_state[0], -3, 3, n_bins)
+        op_2 = self._binarize(input_state[1], -500, 500, n_bins)
+        op_3 = self._binarize(input_state[2], -42, 42, n_bins)
+        op_4 = self._binarize(input_state[3], -500, 500, n_bins)
         return [op_1, op_2, op_3, op_4]
 
     # def cartpole_debinarizer(self, input_state):
