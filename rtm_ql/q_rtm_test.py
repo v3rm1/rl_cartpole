@@ -31,6 +31,9 @@ class RTMQL:
 
         self.gamma = config['learning_params']['gamma']
         
+        self.weighted_clauses = config['qrtm_params']['weighted_clauses']
+        self.incremental = config['qrtm_params']['incremental']
+
         self.epsilon = config['learning_params']['EDF']['epsilon_max']
         self.eps_decay = eps_decay_config
         self.epsilon_min = config['learning_params']['EDF']['epsilon_min']
@@ -64,7 +67,7 @@ class RTMQL:
 
 
     def tm_model(self):
-        self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=self.number_of_clauses, T=self.T, s=self.s, reward=self.reward, gamma=self.gamma, max_score=self.max_score, number_of_actions=self.action_space)
+        self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=self.number_of_clauses, T=self.T, s=self.s, reward=self.reward, gamma=self.gamma, max_score=self.max_score, number_of_actions=self.action_space, weighted_clauses=self.weighted_clauses)
         self.tm_agent.number_of_patches = 2
         self.tm_agent.number_of_ta_chunks = int(((self.number_of_features - 1) / 32) + 1)
         self.tm_agent.number_of_features = self.number_of_features
@@ -92,8 +95,8 @@ class RTMQL:
                 q_update = reward + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
             q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
             q_values[action] = q_update
-            self.agent_1.fit(state, q_values[0])
-            self.agent_2.fit(state, q_values[1])
+            self.agent_1.fit(state, q_values[0], incremental=self.incremental)
+            self.agent_2.fit(state, q_values[1], incremental = self.incremental)
         if self.eps_decay == "SEDF":
             # STRETCHED EXPONENTIAL EPSILON DECAY
             self.epsilon = self.stretched_exp_eps_decay(episode)
@@ -111,7 +114,7 @@ def load_config(config_file):
 def store_config_tested(config_data, win_count, run_date, tested_configs_file_path=CONFIG_TEST_SAVE_PATH):
     run_dt = run_date
     # Defining dictionary key mappings
-    field_names = ['decay_fn', 'epsilon_min', 'epsilon_max', 'epsilon_decay', 'alpha', 'beta', 'delta', 'reward_discount', 'mem_size', 'batch_size', 'episodes', 'reward', 'max_score', 'action_space', 'qrtm_n_clauses', 'T', 's', 'wins', 'win_ratio', 'run_date', 'bin_length']
+    field_names = ['decay_fn', 'epsilon_min', 'epsilon_max', 'epsilon_decay', 'alpha', 'beta', 'delta', 'reward_discount', 'mem_size', 'batch_size', 'episodes', 'reward', 'max_score', 'action_space', 'qrtm_n_clauses', 'T', 's', 'wins', 'win_ratio', 'run_date', 'bin_length', 'incremental', 'weighted_clauses', 'binarizer']
     decay_fn = config_data['learning_params']['epsilon_decay_function']
     if decay_fn == "SEDF":
         alpha = config_data['learning_params']['SEDF']['tail']
@@ -148,7 +151,10 @@ def store_config_tested(config_data, win_count, run_date, tested_configs_file_pa
         'wins': win_count,
         'win_ratio': win_count/config_data['game_params']['episodes'],
         'run_date': run_date,
-        'bin_length':config_data['qrtm_params']['feature_length']
+        'bin_length':config_data['qrtm_params']['feature_length'],
+        'incremental':config_data['qrtm_params']['incremental'],
+        'weighted_clauses': config_data['qrtm_params']['weighted_clauses'],
+        'binarizer': config_data['preproc_params']['binarizer']
     }
     # Write to file. Mode a creates file if it does not exist.
     if not path.exists(tested_configs_file_path):
@@ -175,11 +181,17 @@ def main():
     print("Initializing Q-RTM Agent.")
     rtm_agent = RTMQL(env, config, epsilon_decay_function)
     binarized_length = int(config['qrtm_params']['feature_length'])
+    # incremental = config['qrtm_params']['incremental']
+    # weighted_clauses = config['qrtm_params']['weighted_clauses']
+    binarizer = config['preproc_params']['binarizer']
+    
     prev_actions = []
+    
     win_ctr = 0
+    
     for curr_ep in range(episodes):
         state = env.reset()
-        state = discretizer.cartpole_binarizer(input_state=state, n_bins=binarized_length-1)
+        state = discretizer.cartpole_binarizer(input_state=state, n_bins=binarized_length-1, bin_type=binarizer)
         state = np.reshape(state, [1, feature_length * env.observation_space.shape[0]])
         step = 0
         done = False
@@ -190,7 +202,7 @@ def main():
             prev_actions.append(action)
             next_state, reward, done, info = env.step(action)
             reward = reward if not done else -reward
-            next_state = discretizer.cartpole_binarizer(next_state, n_bins=binarized_length-1)
+            next_state = discretizer.cartpole_binarizer(next_state, n_bins=binarized_length-1, bin_type=binarizer)
             next_state = np.reshape(next_state,
                 [1, feature_length * env.observation_space.shape[0]])
             rtm_agent.memorize(state, action, reward, next_state, done)
@@ -198,8 +210,7 @@ def main():
             if done:
                 if step > 195:
                     win_ctr += 1
-                print("Episode: {0}\nEpsilon: {1}\tScore: {2}".format(
-                curr_ep, rtm_agent.epsilon, step))
+                print("Episode: {0}\nEpsilon: {1}\tScore: {2}".format(curr_ep, rtm_agent.epsilon, step))
                 score_log.add_score(step,
                 curr_ep,
                 gamma,
