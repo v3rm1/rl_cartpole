@@ -14,10 +14,10 @@ class CustomDiscretizer:
             binary_rep[0] = 1
         else:
             binary_rep[0] = 0
-        for i in range(1,n_bins+1):
+        for i in range(1, n_bins+1):
             bin_min = range_min + (i-1) * bin_delta
             bin_max = range_min + (i) * bin_delta
-            if bin_min <= fp_num <= bin_max:
+            if bin_min <= np.absolute(fp_num) <= bin_max:
                 binary_rep[i] = 1
         return binary_rep
 
@@ -28,7 +28,7 @@ class CustomDiscretizer:
         else:
             binary_rep[0] = 0
         for i in range(1, n_places+1):
-            if np.absolute(fp_num) > (i-1)/100:
+            if np.absolute(fp_num) > (i-1):
                 binary_rep[n_places-i+1] = 1
         return binary_rep
 

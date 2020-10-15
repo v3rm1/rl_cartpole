@@ -96,7 +96,7 @@ class RTMQL:
             q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
             q_values[action] = q_update
             self.agent_1.fit(state, q_values[0], incremental=self.incremental)
-            self.agent_2.fit(state, q_values[1], incremental = self.incremental)
+            self.agent_2.fit(state, q_values[1], incremental=self.incremental)
         if self.eps_decay == "SEDF":
             # STRETCHED EXPONENTIAL EPSILON DECAY
             self.epsilon = self.stretched_exp_eps_decay(episode)
