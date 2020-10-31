@@ -94,6 +94,7 @@ class RTMQL:
             if not done:
                 q_update = reward + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
             q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+            print("Q Values: {}".format(q_values))
             q_values[action] = q_update
             self.agent_1.fit(state, q_values[0], incremental=self.incremental)
             self.agent_2.fit(state, q_values[1], incremental=self.incremental)

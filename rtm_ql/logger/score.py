@@ -8,7 +8,13 @@ from time import strftime
 
 AVG_SCORE = 195
 
-SCORES_DIR = os.path.join(os.getcwd(), "rtm_ql/logger/scores/")
+# TODO: Change this when using on local. The current path is hardcoded for Peregrine.
+# LAPTOP PATH
+SCORES_DIR = os.path.join(os.getcwd(), "logger/scores/")
+
+# PEREGRINE PATH
+# SCORES_DIR = "/data/s3893030/rtm_ql/logger/scores/"
+
 SCORE_CSV = os.path.join(SCORES_DIR,
                          'score_' + strftime("%Y%m%d_%H%M%S") + ".csv")
 SCORE_PNG = os.path.join(SCORES_DIR,
