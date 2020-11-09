@@ -7,25 +7,25 @@ learning_params:
     epsilon_max: 1.0
     epsilon_decay: 0.99
   SEDF:
-    tail: 0.5
+    tail: 0.4
     slope: 0.2
     tail_gradient: 0.2
   epsilon_decay_function: SEDF 
 
 memory_params:
   memory_size: 10000
-  batch_size: 50
+  batch_size: 25
 
 game_params:
-  episodes: 500
+  episodes: 300
   reward: 1
   max_score: 200
   action_space: 2
 
 qrtm_params:
   # number_of_features = num_inputs [in this case, 4] * feature_length ALWAYS
-  number_of_features: 16
-  feature_length: 4
+  number_of_features: 64
+  feature_length: 16
   # number_of_clauses = 2 * T ALWAYS
   number_of_clauses: 40000
   T: 20000

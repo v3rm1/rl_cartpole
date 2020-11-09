@@ -8,8 +8,14 @@ from time import strftime
 import csv
 import gym
 from logger.score import ScoreLogger
-from pyTsetlinMachine.tm import QRegressionTsetlinMachine
 from discretizer import CustomDiscretizer
+from debug_plot_functions import DebugLogger
+
+# On LAPTOP
+# from pyTsetlinMachine.tm import QRegressionTsetlinMachine
+# On PEREGRINE
+from q_rtm import QRegressionTsetlinMachine
+
 
 # Path to file containing all configurations for the variables used by the q-rtm system
 CONFIG_PATH = path.join(path.dirname(path.realpath(__file__)), 'config.yaml')
@@ -79,22 +85,22 @@ class RTMQL:
     def act(self, state):
         if np.random.rand() <= self.epsilon:
             a = random.randrange(self.action_space)
-            print("Randomized Action: {}".format(a))
+            # print("Randomized Action: {}".format(a))
             return a
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
-        print("Q value based Action: {}".format(np.argmax(q_values)))
+        # print("Q value based Action: {}".format(np.argmax(q_values)))
         return np.argmax(q_values)
 
     def experience_replay(self, episode):
         if len(self.memory) < self.replay_batch:
-            return
+            return [0,0]
         batch = random.sample(self.memory, self.replay_batch)
         for state, action, reward, next_state, done in batch:
             q_update = reward
             if not done:
                 q_update = reward + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
             q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
-            print("Q Values: {}".format(q_values))
+            # print("Q Values: {}".format(q_values))
             q_values[action] = q_update
             self.agent_1.fit(state, q_values[0], incremental=self.incremental)
             self.agent_2.fit(state, q_values[1], incremental=self.incremental)
@@ -104,6 +110,7 @@ class RTMQL:
         else:
             # EXPONENTIAL EPSILON DECAY
             self.epsilon = self.exp_eps_decay(episode)
+        return q_values if len(q_values)>0 else [0,0]
         
 def load_config(config_file):
     with open(config_file, 'r') as stream:
@@ -176,21 +183,26 @@ def main():
     feature_length = config['qrtm_params']['feature_length']
     print("Configuration file loaded. Creating environment.")
     env = gym.make("CartPole-v0")
+    
+    # Initializing loggers and watchers
+    debug_log = DebugLogger("CartPole-v0")
     score_log = ScoreLogger("CartPole-v0", episodes)
+
     print("Initializing custom discretizer.")
     discretizer = CustomDiscretizer()
     print("Initializing Q-RTM Agent.")
     rtm_agent = RTMQL(env, config, epsilon_decay_function)
     binarized_length = int(config['qrtm_params']['feature_length'])
-    # incremental = config['qrtm_params']['incremental']
-    # weighted_clauses = config['qrtm_params']['weighted_clauses']
     binarizer = config['preproc_params']['binarizer']
     
     prev_actions = []
     
     win_ctr = 0
-    
+    q_list_0 = []
+    q_list_1 = []
     for curr_ep in range(episodes):
+        q_0 = []
+        q_1 = []
         state = env.reset()
         state = discretizer.cartpole_binarizer(input_state=state, n_bins=binarized_length-1, bin_type=binarizer)
         state = np.reshape(state, [1, feature_length * env.observation_space.shape[0]])
@@ -222,7 +234,17 @@ def main():
                 sedf_delta=config['learning_params']['SEDF']['tail_gradient'],
                 edf_epsilon_decay=config['learning_params']['EDF']['epsilon_decay'])
                 break
-            rtm_agent.experience_replay(curr_ep)
+            q_vals = rtm_agent.experience_replay(curr_ep)
+            q_0.append(q_vals[0])
+            q_1.append(q_vals[1])
+        q_list_0.append(np.mean(q_0))
+        q_list_1.append(np.mean(q_1))
+    
+    debug_log.add_watcher(q_list_0,
+                          q_list_1,
+                          n_clauses=config["qrtm_params"]["number_of_clauses"],
+                          T=config["qrtm_params"]["T"],
+                          feature_length=feature_length)
     print("win_ctr: {}".format(win_ctr))
     store_config_tested(config, win_ctr, run_dt)
 

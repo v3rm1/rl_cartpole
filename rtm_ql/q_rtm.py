@@ -1,3 +1,7 @@
+import numpy as np
+import ctypes as C
+import os
+from pyTsetlinMachine.tm import _lib
 
 class QRegressionTsetlinMachine():
 	def __init__(self, number_of_clauses, T, s, boost_true_positive_feedback=1, number_of_state_bits=8, weighted_clauses=False, s_range=False, reward=1, gamma=0.9, max_score=100, number_of_actions=2):
