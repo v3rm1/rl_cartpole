@@ -200,6 +200,7 @@ def main():
     win_ctr = 0
     q_list_0 = []
     q_list_1 = []
+    q_list_total = []
     for curr_ep in range(episodes):
         q_0 = []
         q_1 = []
@@ -237,11 +238,13 @@ def main():
             q_vals = rtm_agent.experience_replay(curr_ep)
             q_0.append(q_vals[0])
             q_1.append(q_vals[1])
-        q_list_0.append(np.mean(q_0))
-        q_list_1.append(np.mean(q_1))
+        q_list_0.append(np.sum(q_0))
+        q_list_1.append(np.sum(q_1))
+        q_list_total.append(np.sum(q_0) + np.sum(q_1)/2)
     
     debug_log.add_watcher(q_list_0,
                           q_list_1,
+                          q_list_total,
                           n_clauses=config["qrtm_params"]["number_of_clauses"],
                           T=config["qrtm_params"]["T"],
                           feature_length=feature_length)

@@ -29,7 +29,7 @@ qrtm_params:
   # number_of_clauses = 2 * T ALWAYS
   number_of_clauses: 40000
   T: 20000
-  s: 2.75
+  s: 1
   incremental: True
   weighted_clauses: False
 

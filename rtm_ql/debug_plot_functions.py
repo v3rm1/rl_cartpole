@@ -23,7 +23,7 @@ class DebugLogger:
         super().__init__()
         self.env_name = env_name
 
-    def add_watcher(self, q_list_0, q_list_1, n_clauses, T, feature_length):
+    def add_watcher(self, q_list_0, q_list_1, q_list_total, n_clauses, T, feature_length):
         """
 
         :param score: 
@@ -32,6 +32,7 @@ class DebugLogger:
         """
         self._save_png(q_0=q_list_0,
                        q_1=q_list_1,
+                       q_total=q_list_total,
                        n_runs=len(q_list_0),
                        output_img=Q_VALS_PNG,
                        x_label="Runs",
@@ -43,7 +44,7 @@ class DebugLogger:
                        )
         return
 
-    def _save_png(self, q_0, q_1, n_runs, output_img, x_label, y_label, show_legend, n_clauses, T, feature_length):
+    def _save_png(self, q_0, q_1, q_total, n_runs, output_img, x_label, y_label, show_legend, n_clauses, T, feature_length):
         """
 
         :param input_scores: 
@@ -60,6 +61,7 @@ class DebugLogger:
         plt.subplots()
         plt.plot(x, q_0, label="q_0")
         plt.plot(x, q_1, label="q_1")
+        plt.plot(x, q_total, 'r--', label="q_total")
         plt.suptitle(self.env_name + ": Avg Q-values over" + str(n_runs) + " runs")
         plt.title("n_clauses: " + str(n_clauses) + " T: " + str(T) + " bits_per_feature: " + str(feature_length))
         plt.xlabel(x_label)
