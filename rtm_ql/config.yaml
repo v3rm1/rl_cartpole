@@ -27,9 +27,9 @@ qrtm_params:
   number_of_features: 64
   feature_length: 16
   # number_of_clauses = 2 * T ALWAYS
-  number_of_clauses: 40000
-  T: 20000
-  s: 1
+  number_of_clauses: 400
+  T: 200
+  s: 0.01
   incremental: True
   weighted_clauses: False
 
