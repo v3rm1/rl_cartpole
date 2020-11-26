@@ -235,9 +235,9 @@ def main():
                 sedf_delta=config['learning_params']['SEDF']['tail_gradient'],
                 edf_epsilon_decay=config['learning_params']['EDF']['epsilon_decay'])
                 break
-            q_vals = rtm_agent.experience_replay(curr_ep)
-            q_0.append(q_vals[0])
-            q_1.append(q_vals[1])
+        q_vals = rtm_agent.experience_replay(curr_ep)
+        q_0.append(q_vals[0])
+        q_1.append(q_vals[1])
         q_list_0.append(np.sum(q_0))
         q_list_1.append(np.sum(q_1))
         q_list_total.append(np.sum(q_0) + np.sum(q_1)/2)
