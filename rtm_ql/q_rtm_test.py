@@ -40,9 +40,12 @@ class RTMQL:
         self.weighted_clauses = config['qrtm_params']['weighted_clauses']
         self.incremental = config['qrtm_params']['incremental']
 
-        self.epsilon = config['learning_params']['EDF']['epsilon_max']
+        
+        self.epsilon_max = config['learning_params']['EDF']['epsilon_max']
         self.eps_decay = eps_decay_config
         self.epsilon_min = config['learning_params']['EDF']['epsilon_min']
+
+        self.epsilon = self.epsilon_max
 
         self.T = config['qrtm_params']['T']
         self.s = config['qrtm_params']['s']
@@ -69,12 +72,12 @@ class RTMQL:
 
     def stretched_exp_eps_decay(self, current_ep):
         self.epsilon = 1.1 - (1 / (np.cosh(math.exp(-(current_ep - self.sedf_alpha * self.episodes) / (self.sedf_beta * self.episodes)))) + (current_ep * self.sedf_delta / self.episodes))
-        return max(min(1, self.epsilon), self.epsilon_min)
+        return max(min(self.epsilon_max, self.epsilon), self.epsilon_min)
 
 
     def tm_model(self):
         self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=self.number_of_clauses, T=self.T, s=self.s, reward=self.reward, gamma=self.gamma, max_score=self.max_score, number_of_actions=self.action_space, weighted_clauses=self.weighted_clauses)
-        self.tm_agent.number_of_patches = 2
+        self.tm_agent.number_of_patches = 10
         self.tm_agent.number_of_ta_chunks = int(((self.number_of_features - 1) / 32) + 1)
         self.tm_agent.number_of_features = self.number_of_features
         return self.tm_agent

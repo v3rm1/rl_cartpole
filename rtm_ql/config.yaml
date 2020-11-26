@@ -10,7 +10,7 @@ learning_params:
     tail: 0.4
     slope: 0.2
     tail_gradient: 0.2
-  epsilon_decay_function: SEDF 
+  epsilon_decay_function: EDF 
 
 memory_params:
   memory_size: 10000
