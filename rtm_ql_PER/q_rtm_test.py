@@ -10,11 +10,7 @@ import gym
 from logger.score import ScoreLogger
 from discretizer import CustomDiscretizer
 from debug_plot_functions import DebugLogger
-from itertools import starmap, repeat
-
-# On LAPTOP
-# from pyTsetlinMachine.tm import QRegressionTsetlinMachine
-# On PEREGRINE
+from per_memory import Memory
 from q_rtm import QRegressionTsetlinMachine
 
 
@@ -29,7 +25,7 @@ class RTMQL:
         self.obs_space = 2 * environment.observation_space.shape[0]
         self.action_space = environment.action_space.n
 
-        self.memory = deque(maxlen=config['memory_params']['memory_size'])
+        self.memory = Memory(config['memory_params']['memory_size'])
         self.replay_batch = config['memory_params']['batch_size']
 
         self.episodes = config['game_params']['episodes']
@@ -66,6 +62,15 @@ class RTMQL:
 
         self.agent_1 = self.tm_model()
         self.agent_2 = self.tm_model()
+        self.agent_1_target = self.tm_model()
+        self.agent_2_target = self.tm_model()
+
+        self.update_target_agents()
+
+
+    def update_target_agents(self):
+        self.agent_1_target = self.agent_1
+        self.agent_2_target = self.agent_2
 
     def exp_eps_decay(self, current_ep):
         self.epsilon = self.epsilon_max * pow(self.epsilon_decay, current_ep)
@@ -78,13 +83,25 @@ class RTMQL:
 
     def tm_model(self):
         self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=self.number_of_clauses, T=self.T, s=self.s, reward=self.reward, gamma=self.gamma, max_score=self.max_score, number_of_actions=self.action_space, weighted_clauses=self.weighted_clauses)
-        self.tm_agent.number_of_patches = 10
+        self.tm_agent.number_of_patches = 2
         self.tm_agent.number_of_ta_chunks = int(((self.number_of_features - 1) / 32) + 1)
         self.tm_agent.number_of_features = self.number_of_features
         return self.tm_agent
 
     def memorize(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+        q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+        target_q = [self.agent_1_target.predict(next_state), self.agent_2_target.predict(next_state)]
+        old_q = q_values[action]
+        if done:
+            q_update = reward
+        if not done:
+            q_update = reward + self.gamma * target_q[action]
+        
+        q_values[action] = q_update
+
+
+        error = abs(old_q - target_q[action])
+        self.memory.add_sample_to_tree(error, (state, action, reward, next_state, done))
 
     def act(self, state):
         if np.random.rand() <= self.epsilon:
@@ -96,17 +113,29 @@ class RTMQL:
         return np.argmax(q_values)
 
     def experience_replay(self, episode):
-        if len(self.memory) < self.replay_batch:
-            return [0,0]
-        batch = random.sample(self.memory, self.replay_batch)
-        # batch = list(starmap(self.memory.pop, repeat((), self.replay_batch)))
-        for state, action, reward, next_state, done in batch:
-            q_update = reward
+
+        batch, idxs, is_weights = self.memory.sample_tree(self.replay_batch)
+
+        batch = np.array(batch, dtype=object).transpose()
+
+        states = np.vstack(batch[0])
+        actions = list(batch[1])
+        rewards = list(batch[2])
+        next_states = np.vstack(batch[3])
+        done_list = batch[4]
+        for idx, state, action, reward, next_state, done in zip(idxs, states, actions, rewards, next_states, done_list):
+            if done:
+                q_update = reward
             if not done:
                 q_update = reward + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
             q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
             # print("Q Values: {}".format(q_values))
             q_values[action] = q_update
+            next_pred = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
+            target = reward + (1 - done) * self.gamma * next_pred[action]
+
+            error = abs(q_values[action] - target)
+            self.memory.update_tree(idx, error)
             self.agent_1.fit(state, q_values[0], incremental=self.incremental)
             self.agent_2.fit(state, q_values[1], incremental=self.incremental)
         if self.eps_decay == "SEDF":
@@ -115,6 +144,7 @@ class RTMQL:
         else:
             # EXPONENTIAL EPSILON DECAY
             self.epsilon = self.exp_eps_decay(episode)
+        self.update_target_agents()
         return q_values if len(q_values)>0 else [0,0]
         
 def load_config(config_file):

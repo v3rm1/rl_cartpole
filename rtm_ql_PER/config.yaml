@@ -14,7 +14,7 @@ learning_params:
 
 memory_params:
   memory_size: 10000
-  batch_size: 100
+  batch_size: 25
 
 game_params:
   episodes: 300
@@ -24,12 +24,12 @@ game_params:
 
 qrtm_params:
   # number_of_features = num_inputs [in this case, 4] * feature_length ALWAYS
-  number_of_features: 256
-  feature_length: 64
+  number_of_features: 64
+  feature_length: 16
   # number_of_clauses = 2 * T ALWAYS
   number_of_clauses: 40000
   T: 20000
-  s: 0.00001
+  s: 0.000001
   incremental: True
   weighted_clauses: False
 
