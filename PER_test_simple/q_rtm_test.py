@@ -6,30 +6,27 @@ import math
 from collections import deque
 from time import strftime
 import csv
-import gym
+from simple_game import Cartpole_Simplified
 from logger.score import ScoreLogger
 from discretizer import CustomDiscretizer
 from debug_plot_functions import DebugLogger
-from itertools import starmap, repeat
-
-# On LAPTOP
-# from pyTsetlinMachine.tm import QRegressionTsetlinMachine
-# On PEREGRINE
+from per_memory import Memory
 from q_rtm import QRegressionTsetlinMachine
 
 
 # Path to file containing all configurations for the variables used by the q-rtm system
 CONFIG_PATH = path.join(path.dirname(path.realpath(__file__)), 'config.yaml')
-#
+# Path to store tested configurations
 CONFIG_TEST_SAVE_PATH = path.join(path.dirname(path.realpath(__file__)), 'tested_configs.csv')
+
 class RTMQL:
     def __init__(self, environment, config, eps_decay_config="EDF"):
         super().__init__()
         # Since we represent each value in the vector as a 2 bit string
         self.obs_space = 2 * environment.observation_space.shape[0]
-        self.action_space = environment.action_space.n
+        self.action_space = len(environment.action_space)
 
-        self.memory = deque(maxlen=config['memory_params']['memory_size'])
+        self.memory = Memory(config['memory_params']['memory_size'])
         self.replay_batch = config['memory_params']['batch_size']
 
         self.episodes = config['game_params']['episodes']
@@ -66,6 +63,15 @@ class RTMQL:
 
         self.agent_1 = self.tm_model()
         self.agent_2 = self.tm_model()
+        self.agent_1_target = self.tm_model()
+        self.agent_2_target = self.tm_model()
+
+        self.update_target_agents()
+
+
+    def update_target_agents(self):
+        self.agent_1_target = self.agent_1
+        self.agent_2_target = self.agent_2
 
     def exp_eps_decay(self, current_ep):
         self.epsilon = self.epsilon_max * pow(self.epsilon_decay, current_ep)
@@ -84,7 +90,18 @@ class RTMQL:
         return self.tm_agent
 
     def memorize(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+        q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+        target_q = [self.agent_1_target.predict(next_state), self.agent_2_target.predict(next_state)]
+        old_q = q_values[action]
+        if done:
+            q_update = reward
+        if not done:
+            q_update = reward + self.gamma * target_q[action]
+        
+        q_values[action] = q_update
+
+        error = abs(old_q - target_q[action])
+        self.memory.add_sample_to_tree(error, (state, action, reward, next_state, done))
 
     def act(self, state):
         if np.random.rand() <= self.epsilon:
@@ -96,17 +113,29 @@ class RTMQL:
         return np.argmax(q_values)
 
     def experience_replay(self, episode):
-        if len(self.memory) < self.replay_batch:
-            return [0,0]
-        batch = random.sample(self.memory, self.replay_batch)
-        # batch = list(starmap(self.memory.pop, repeat((), self.replay_batch)))
-        for state, action, reward, next_state, done in batch:
-            q_update = reward
+
+        batch, idxs, is_weights = self.memory.sample_tree(self.replay_batch)
+
+        batch = np.array(batch, dtype=object).transpose()
+
+        states = np.vstack(batch[0])
+        actions = list(batch[1])
+        rewards = list(batch[2])
+        next_states = np.vstack(batch[3])
+        done_list = batch[4]
+        for idx, state, action, reward, next_state, done in zip(idxs, states, actions, rewards, next_states, done_list):
+            if done:
+                q_update = reward
             if not done:
                 q_update = reward + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
             q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
             # print("Q Values: {}".format(q_values))
             q_values[action] = q_update
+            next_pred = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
+            target = reward + (1 - done) * self.gamma * next_pred[action]
+
+            error = abs(q_values[action] - target)
+            self.memory.update_tree(idx, error)
             self.agent_1.fit(state, q_values[0], incremental=self.incremental)
             self.agent_2.fit(state, q_values[1], incremental=self.incremental)
         if self.eps_decay == "SEDF":
@@ -115,6 +144,7 @@ class RTMQL:
         else:
             # EXPONENTIAL EPSILON DECAY
             self.epsilon = self.exp_eps_decay(episode)
+        self.update_target_agents()
         return q_values if len(q_values)>0 else [0,0]
         
 def load_config(config_file):
@@ -187,11 +217,11 @@ def main():
     epsilon_decay_function = config['learning_params']['epsilon_decay_function']
     feature_length = config['qrtm_params']['feature_length']
     print("Configuration file loaded. Creating environment.")
-    env = gym.make("CartPole-v0")
+    env = Cartpole_Simplified()
     
     # Initializing loggers and watchers
-    debug_log = DebugLogger("CartPole-v0")
-    score_log = ScoreLogger("CartPole-v0", episodes)
+    debug_log = DebugLogger("Simp-Cartpole")
+    score_log = ScoreLogger("Simp-Cartpole", episodes)
 
     print("Initializing custom discretizer.")
     discretizer = CustomDiscretizer()
@@ -211,7 +241,7 @@ def main():
         q_1 = []
         state = env.reset()
         state = discretizer.cartpole_binarizer(input_state=state, n_bins=binarized_length-1, bin_type=binarizer)
-        state = np.reshape(state, [1, feature_length * env.observation_space.shape[0]])
+        state = np.reshape(state, [1, feature_length])
         step = 0
         done = False
         while not done:
@@ -219,16 +249,16 @@ def main():
             # env.render()
             action = rtm_agent.act(state)
             prev_actions.append(action)
-            next_state, reward, done, info = env.step(action)
-            reward = reward if not done else -reward
+            state, next_state, reward, done = env.game_step(action)
+            print("curr_st: {0}\nnext_st: {1}\nreward: {2}\naction: {3}".format(state, next_state, reward, action))
+            state = discretizer.cartpole_binarizer(input_state=state, n_bins=binarized_length-1, bin_type=binarizer)
+            state = np.reshape(state, [1, feature_length])
             next_state = discretizer.cartpole_binarizer(next_state, n_bins=binarized_length-1, bin_type=binarizer)
             next_state = np.reshape(next_state,
-                [1, feature_length * env.observation_space.shape[0]])
+                [1, feature_length])
             rtm_agent.memorize(state, action, reward, next_state, done)
             state = next_state
             if done:
-                if step > 195:
-                    win_ctr += 1
                 print("Episode: {0}\nEpsilon: {1}\tScore: {2}".format(curr_ep, rtm_agent.epsilon, step))
                 score_log.add_score(step,
                 curr_ep,
@@ -253,7 +283,6 @@ def main():
                           n_clauses=config["qrtm_params"]["number_of_clauses"],
                           T=config["qrtm_params"]["T"],
                           feature_length=feature_length)
-    print("win_ctr: {}".format(win_ctr))
     store_config_tested(config, win_ctr, run_dt)
 
 
