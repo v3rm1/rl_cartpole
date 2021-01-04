@@ -30,7 +30,7 @@ class RTMQL:
         self.replay_batch = config['memory_params']['batch_size']
 
         self.episodes = config['game_params']['episodes']
-        self.reward = config['game_params']['reward']
+        self.reward = environment.reward
         self.max_score = config['game_params']['max_score']
 
         self.gamma = config['learning_params']['gamma']
@@ -92,6 +92,7 @@ class RTMQL:
     def memorize(self, state, action, reward, next_state, done):
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
         target_q = [self.agent_1_target.predict(next_state), self.agent_2_target.predict(next_state)]
+        print("Target Q_Value: {}".format(target_q))
         old_q = q_values[action]
         if done:
             q_update = reward
@@ -101,7 +102,10 @@ class RTMQL:
         q_values[action] = q_update
 
         error = abs(old_q - target_q[action])
+        print("TD_Error: {}".format(error))
+        
         self.memory.add_sample_to_tree(error, (state, action, reward, next_state, done))
+        return error
 
     def act(self, state):
         if np.random.rand() <= self.epsilon:
@@ -236,7 +240,9 @@ def main():
     q_list_0 = []
     q_list_1 = []
     q_list_total = []
+    err_list = []
     for curr_ep in range(episodes):
+        err = []
         q_0 = []
         q_1 = []
         state = env.reset()
@@ -245,20 +251,22 @@ def main():
         step = 0
         done = False
         while not done:
-            step += 1
             # env.render()
             action = rtm_agent.act(state)
             prev_actions.append(action)
             state, next_state, reward, done = env.game_step(action)
-            print("curr_st: {0}\nnext_st: {1}\nreward: {2}\naction: {3}".format(state, next_state, reward, action))
+            print("curr_st: {0}\tnext_st: {1}\treward: {2}\taction: {3}".format(state, next_state, reward, action))
             state = discretizer.cartpole_binarizer(input_state=state, n_bins=binarized_length-1, bin_type=binarizer)
             state = np.reshape(state, [1, feature_length])
             next_state = discretizer.cartpole_binarizer(next_state, n_bins=binarized_length-1, bin_type=binarizer)
             next_state = np.reshape(next_state,
                 [1, feature_length])
-            rtm_agent.memorize(state, action, reward, next_state, done)
+            err.append(rtm_agent.memorize(state, action, reward, next_state, done))
             state = next_state
+            step += reward
             if done:
+                err_list.append(np.mean(err))
+                step += reward
                 print("Episode: {0}\nEpsilon: {1}\tScore: {2}".format(curr_ep, rtm_agent.epsilon, step))
                 score_log.add_score(step,
                 curr_ep,
@@ -282,7 +290,8 @@ def main():
                           q_list_total,
                           n_clauses=config["qrtm_params"]["number_of_clauses"],
                           T=config["qrtm_params"]["T"],
-                          feature_length=feature_length)
+                          feature_length=feature_length,
+                          error_list=err_list)
     store_config_tested(config, win_ctr, run_dt)
 
 

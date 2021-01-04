@@ -1,5 +1,6 @@
 import numpy as np
 
+STEP_REWARD = 0
 class Cartpole_Simplified:
     def __init__(self, n_states=5):
         self.n_states = n_states
@@ -9,7 +10,7 @@ class Cartpole_Simplified:
         self.action_space = [0, 1]
         self.start_state = self._sample_state()
         self.current_state = self.start_state
-        self.reward = 0
+        self.reward = STEP_REWARD
         self.done = False
 
     def _sample_state(self):
@@ -19,10 +20,10 @@ class Cartpole_Simplified:
     def _check_terminal(self, state):
         if state in self.end_states:
             if state == self.end_states[0]:
-                self.reward = -1
+                self.reward = -2
                 self.done = True
             else:
-                self.reward = 1
+                self.reward = 2
                 self.done = True
         return self.reward, self.done
     
@@ -52,7 +53,7 @@ class Cartpole_Simplified:
         self.action_space = [0, 1]
         self.start_state = self._sample_state()
         self.current_state = self.start_state
-        self.reward = 0
+        self.reward = STEP_REWARD
         self.done = False
         return self.current_state
 

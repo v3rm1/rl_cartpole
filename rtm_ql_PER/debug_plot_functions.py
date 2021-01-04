@@ -15,7 +15,8 @@ DEBUG_PLOT_DIR = os.path.join(os.getcwd(), "rtm_ql_PER/logger/debug/")
 
 Q_VALS_PNG = os.path.join(DEBUG_PLOT_DIR,
                          'avg_q_vals_' + strftime("%Y%m%d_%H%M%S") + ".png")
-
+AVG_TD_ERR_PNG = os.path.join(DEBUG_PLOT_DIR,
+                         'avg_td_err_' + strftime("%Y%m%d_%H%M%S") + ".png")
 
 class DebugLogger:
     """ """
@@ -23,7 +24,7 @@ class DebugLogger:
         super().__init__()
         self.env_name = env_name
 
-    def add_watcher(self, q_list_0, q_list_1, q_list_total, n_clauses, T, feature_length):
+    def add_watcher(self, q_list_0, q_list_1, q_list_total, n_clauses, T, feature_length, error_list):
         """
 
         :param score: 
@@ -42,6 +43,11 @@ class DebugLogger:
                        T=T,
                        feature_length=feature_length
                        )
+        self._plot_error(error_list=error_list,
+                         n_runs=len(q_list_0),
+                         x_label="Runs",
+                         y_label="TD Error: Avg over Run",
+                         output_img=AVG_TD_ERR_PNG)
         return
 
     def _save_png(self, q_0, q_1, q_total, n_runs, output_img, x_label, y_label, show_legend, n_clauses, T, feature_length):
@@ -73,3 +79,16 @@ class DebugLogger:
         plt.savefig(output_img, bbox_inches="tight")
         plt.close()
 
+    def _plot_error(self, error_list, n_runs, x_label, y_label, output_img, show_legend=False):
+        x = np.arange(n_runs)
+        plt.subplots()
+        plt.plot(x, error_list, label="avg_td_err")
+        plt.suptitle(self.env_name + ": Avg TD-Error over" + str(n_runs) + " runs")
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+
+        if show_legend:
+            plt.legend(loc="upper left")
+
+        plt.savefig(output_img, bbox_inches="tight")
+        plt.close()

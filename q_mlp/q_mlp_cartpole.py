@@ -11,6 +11,8 @@ import gym
 import tensorflow as tf
 from tensorflow import keras
 
+
+
 # Reward decay
 GAMMA = 0.9
 # Learning Rate

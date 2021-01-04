@@ -102,6 +102,7 @@ class RTMQL:
 
         error = abs(old_q - target_q[action])
         self.memory.add_sample_to_tree(error, (state, action, reward, next_state, done))
+        return error
 
     def act(self, state):
         if np.random.rand() <= self.epsilon:
@@ -236,7 +237,9 @@ def main():
     q_list_0 = []
     q_list_1 = []
     q_list_total = []
+    err_list = []
     for curr_ep in range(episodes):
+        err = []
         q_0 = []
         q_1 = []
         state = env.reset()
@@ -254,9 +257,10 @@ def main():
             next_state = discretizer.cartpole_binarizer(next_state, n_bins=binarized_length-1, bin_type=binarizer)
             next_state = np.reshape(next_state,
                 [1, feature_length * env.observation_space.shape[0]])
-            rtm_agent.memorize(state, action, reward, next_state, done)
+            err.append(rtm_agent.memorize(state, action, reward, next_state, done))
             state = next_state
             if done:
+                err_list.append(np.mean(err))
                 if step > 195:
                     win_ctr += 1
                 print("Episode: {0}\nEpsilon: {1}\tScore: {2}".format(curr_ep, rtm_agent.epsilon, step))
@@ -282,7 +286,8 @@ def main():
                           q_list_total,
                           n_clauses=config["qrtm_params"]["number_of_clauses"],
                           T=config["qrtm_params"]["T"],
-                          feature_length=feature_length)
+                          feature_length=feature_length,
+                          error_list=err_list)
     print("win_ctr: {}".format(win_ctr))
     store_config_tested(config, win_ctr, run_dt)
 

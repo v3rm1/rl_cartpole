@@ -31,7 +31,7 @@ class QRegressionTsetlinMachine():
 		number_of_examples = X.shape[0]
 
 		self.max_y = (np.ceil(self.reward * (1 - np.power(self.gamma, self.max_score)) / ((1 - self.gamma)))) if self.gamma<1 else self.max_score
-		self.min_y = 1
+		self.min_y = -2
 
 		if self.rtm == None:
 			self.number_of_features = X.shape[1]*2
