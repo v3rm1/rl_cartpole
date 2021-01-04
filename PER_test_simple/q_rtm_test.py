@@ -134,9 +134,10 @@ class RTMQL:
                 q_update = reward + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
             q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
             # print("Q Values: {}".format(q_values))
-            q_values[action] = q_update
+            # q_values[action] = q_update
             next_pred = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
             target = reward + (1 - done) * self.gamma * next_pred[action]
+            q_values[action] = target
 
             error = abs(q_values[action] - target)
             self.memory.update_tree(idx, error)
@@ -149,6 +150,7 @@ class RTMQL:
             # EXPONENTIAL EPSILON DECAY
             self.epsilon = self.exp_eps_decay(episode)
         self.update_target_agents()
+        print("Q-Values: {}".format(q_values))
         return q_values if len(q_values)>0 else [0,0]
         
 def load_config(config_file):
@@ -263,9 +265,9 @@ def main():
                 [1, feature_length])
             err.append(rtm_agent.memorize(state, action, reward, next_state, done))
             state = next_state
-            step += reward
+            # step += reward
             if done:
-                err_list.append(np.mean(err))
+                err_list.append(np.mean(err)*100)
                 step += reward
                 print("Episode: {0}\nEpsilon: {1}\tScore: {2}".format(curr_ep, rtm_agent.epsilon, step))
                 score_log.add_score(step,
@@ -284,7 +286,7 @@ def main():
         q_list_0.append(np.sum(q_0))
         q_list_1.append(np.sum(q_1))
         q_list_total.append(np.sum(q_0) + np.sum(q_1)/2)
-    
+    print("Error List: {}".format(err_list))
     debug_log.add_watcher(q_list_0,
                           q_list_1,
                           q_list_total,

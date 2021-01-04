@@ -31,7 +31,7 @@ class QRegressionTsetlinMachine():
 		number_of_examples = X.shape[0]
 
 		self.max_y = (np.ceil(self.reward * (1 - np.power(self.gamma, self.max_score)) / ((1 - self.gamma)))) if self.gamma<1 else self.max_score
-		self.min_y = -2
+		self.min_y = -1 * self.max_y
 
 		if self.rtm == None:
 			self.number_of_features = X.shape[1]*2
@@ -59,10 +59,10 @@ class QRegressionTsetlinMachine():
 	def predict(self, X):
 		number_of_examples = X.shape[0]
 		self.max_y = (np.ceil(self.reward * (1 - np.power(self.gamma, self.max_score)) / ((1 - self.gamma)))) if self.gamma<1 else self.max_score
-		self.min_y = 1
+		self.min_y = -1 * self.max_y
 		if self.rtm == None:
 			self.number_of_features = X.shape[1]*2
-			self.number_of_patches = 5
+			self.number_of_patches = 1
 			self.number_of_ta_chunks = int((self.number_of_features-1)/32 + 1)
 			self.rtm = _lib.CreateTsetlinMachine(self.number_of_clauses, self.number_of_features, 1, self.number_of_ta_chunks, self.number_of_state_bits, self.T, self.s, self.s_range, self.boost_true_positive_feedback, self.weighted_clauses)
 		self.encoded_X = np.ascontiguousarray(np.empty(int(number_of_examples * self.number_of_patches * self.number_of_ta_chunks), dtype=np.uint32))

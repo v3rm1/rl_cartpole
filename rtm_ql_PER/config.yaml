@@ -14,10 +14,10 @@ learning_params:
 
 memory_params:
   memory_size: 10000
-  batch_size: 25
+  batch_size: 30
 
 game_params:
-  episodes: 300
+  episodes: 50
   reward: 1
   max_score: 200
   action_space: 2
