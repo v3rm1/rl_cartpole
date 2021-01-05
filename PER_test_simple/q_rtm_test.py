@@ -205,7 +205,7 @@ def store_config_tested(config_data, win_count, run_date, tested_configs_file_pa
         'weighted_clauses': config_data['qrtm_params']['weighted_clauses'],
         'binarizer': config_data['preproc_params']['binarizer']
     }
-    # Write to file. Mode a creates file if it does not exist.
+    # Write to file. Mode "a" creates file if it does not exist.
     if not path.exists(tested_configs_file_path):
         with open(tested_configs_file_path, 'w', newline='') as write_obj:
             header_writer = csv.writer(write_obj)

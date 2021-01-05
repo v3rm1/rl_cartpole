@@ -14,10 +14,10 @@ learning_params:
 
 memory_params:
   memory_size: 10000
-  batch_size: 5
+  batch_size: 25
 
 game_params:
-  episodes: 20
+  episodes: 200
   reward: 0
   max_score: 2
   action_space: 2
@@ -31,7 +31,7 @@ qrtm_params:
   T: 20000
   s: 0.000001
   incremental: True
-  weighted_clauses: False
+  weighted_clauses: True
 
 preproc_params:
   # Binarizer has to be a string 
