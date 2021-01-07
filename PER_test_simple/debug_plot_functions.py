@@ -68,7 +68,7 @@ class DebugLogger:
         plt.plot(x, q_0, label="q_0")
         plt.plot(x, q_1, label="q_1")
         plt.plot(x, q_total, 'r--', label="q_total")
-        plt.suptitle(self.env_name + ": Avg Q-values over" + str(n_runs) + " runs")
+        plt.suptitle(self.env_name + " : Avg Q-values over " + str(n_runs) + " runs")
         plt.title("n_clauses: " + str(n_clauses) + " T: " + str(T) + " bits_per_feature: " + str(feature_length))
         plt.xlabel(x_label)
         plt.ylabel(y_label)
@@ -83,7 +83,7 @@ class DebugLogger:
         x = np.arange(n_runs)
         plt.subplots()
         plt.plot(x, error_list, label="avg_td_err")
-        plt.suptitle(self.env_name + ": Avg TD-Error over" + str(n_runs) + " runs")
+        plt.suptitle(self.env_name + " : Avg TD-Error over " + str(n_runs) + " runs")
         plt.xlabel(x_label)
         plt.ylabel(y_label)
 

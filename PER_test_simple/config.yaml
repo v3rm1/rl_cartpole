@@ -10,28 +10,28 @@ learning_params:
     tail: 0.4
     slope: 0.2
     tail_gradient: 0.2
-  epsilon_decay_function: EDF 
+  epsilon_decay_function: SEDF 
 
 memory_params:
   memory_size: 10000
   batch_size: 25
 
 game_params:
-  episodes: 200
+  episodes: 100
   reward: 0
   max_score: 2
   action_space: 2
 
 qrtm_params:
   # number_of_features = num_inputs [in this case, 4] * feature_length ALWAYS
-  number_of_features: 2
+  number_of_features: 1
   feature_length: 3
   # number_of_clauses = 2 * T ALWAYS
   number_of_clauses: 40000
   T: 20000
   s: 0.000001
   incremental: True
-  weighted_clauses: True
+  weighted_clauses: False
 
 preproc_params:
   # Binarizer has to be a string 

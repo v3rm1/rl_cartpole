@@ -33,6 +33,7 @@ class RTMQL:
         self.max_score = config['game_params']['max_score']
 
         self.gamma = config['learning_params']['gamma']
+        self.learning_rate = config['learning_params']['learning_rate']
         
         self.weighted_clauses = config['qrtm_params']['weighted_clauses']
         self.incremental = config['qrtm_params']['incremental']
@@ -83,25 +84,26 @@ class RTMQL:
 
     def tm_model(self):
         self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=self.number_of_clauses, T=self.T, s=self.s, reward=self.reward, gamma=self.gamma, max_score=self.max_score, number_of_actions=self.action_space, weighted_clauses=self.weighted_clauses)
-        self.tm_agent.number_of_patches = 2
+        self.tm_agent.number_of_patches = 1
         self.tm_agent.number_of_ta_chunks = int(((self.number_of_features - 1) / 32) + 1)
         self.tm_agent.number_of_features = self.number_of_features
         return self.tm_agent
 
     def memorize(self, state, action, reward, next_state, done):
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
-        target_q = [self.agent_1_target.predict(next_state), self.agent_2_target.predict(next_state)]
+        target_q = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
         old_q = q_values[action]
         if done:
             q_update = reward
         if not done:
-            q_update = reward + self.gamma * target_q[action]
+            q_update = self.learning_rate * ( reward + self.gamma * target_q[action] - q_values[action] )
         
-        q_values[action] = q_update
+        q_values[action] += q_update
 
 
         error = abs(old_q - target_q[action])
         self.memory.add_sample_to_tree(error, (state, action, reward, next_state, done))
+        self.update_target_agents()
         return error
 
     def act(self, state):
@@ -110,8 +112,8 @@ class RTMQL:
             # print("Randomized Action: {}".format(a))
             return a
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
-        # print("Q value based Action: {}".format(np.argmax(q_values)))
-        return np.argmax(q_values)
+        print("Q value based Action: {}".format(np.argmax(q_values)))
+        return 0 if q_values[0] > 0 else 1
 
     def experience_replay(self, episode):
 
@@ -128,13 +130,13 @@ class RTMQL:
             if done:
                 q_update = reward
             if not done:
-                q_update = reward + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
+                q_update = self.learning_rate * ( reward + self.gamma * np.max([self.agent_1.predict(next_state), self.agent_2.predict(next_state)]) - np.max([self.agent_1.predict(state), self.agent_2.predict(state)]) )
             q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
             # print("Q Values: {}".format(q_values))
-            q_values[action] = q_update
+            q_values[action] += q_update
             next_pred = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
             target = reward + (1 - done) * self.gamma * next_pred[action]
-
+            # q_values[action] += target
             error = abs(q_values[action] - target)
             self.memory.update_tree(idx, error)
             self.agent_1.fit(state, q_values[0], incremental=self.incremental)

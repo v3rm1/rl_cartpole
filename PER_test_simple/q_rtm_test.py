@@ -30,7 +30,7 @@ class RTMQL:
         self.replay_batch = config['memory_params']['batch_size']
 
         self.episodes = config['game_params']['episodes']
-        self.reward = environment.reward
+        self.reward = config['game_params']['reward'] #environment.reward
         self.max_score = config['game_params']['max_score']
 
         self.gamma = config['learning_params']['gamma']
@@ -90,21 +90,23 @@ class RTMQL:
         return self.tm_agent
 
     def memorize(self, state, action, reward, next_state, done):
-        q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
-        target_q = [self.agent_1_target.predict(next_state), self.agent_2_target.predict(next_state)]
+        q_values = [np.random.uniform(0,1), np.random.uniform(0,1)] if self.epsilon > 0.5 else [0, 0]
+        q_values = [q_values[0] + self.agent_1.predict(state), q_values[1] + self.agent_2.predict(state)]
+        target_q = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
         print("Target Q_Value: {}".format(target_q))
         old_q = q_values[action]
         if done:
-            q_update = reward
+            q_update = reward + 1
         if not done:
-            q_update = reward + self.gamma * target_q[action]
+            q_update = reward + 1 + self.gamma * target_q[action]
         
-        q_values[action] = q_update
+        q_values[action] += q_update
 
         error = abs(old_q - target_q[action])
         print("TD_Error: {}".format(error))
         
         self.memory.add_sample_to_tree(error, (state, action, reward, next_state, done))
+        self.update_target_agents()
         return error
 
     def act(self, state):
@@ -113,8 +115,9 @@ class RTMQL:
             # print("Randomized Action: {}".format(a))
             return a
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+        print("Agent Predictions: {}".format(q_values))
         # print("Q value based Action: {}".format(np.argmax(q_values)))
-        return np.argmax(q_values)
+        return 0 if q_values[0] > 0 else 1
 
     def experience_replay(self, episode):
 
@@ -129,15 +132,15 @@ class RTMQL:
         done_list = batch[4]
         for idx, state, action, reward, next_state, done in zip(idxs, states, actions, rewards, next_states, done_list):
             if done:
-                q_update = reward
+                q_update = reward + 1
             if not done:
-                q_update = reward + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
+                q_update = reward  + 1 + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
             q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
             # print("Q Values: {}".format(q_values))
             # q_values[action] = q_update
             next_pred = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
-            target = reward + (1 - done) * self.gamma * next_pred[action]
-            q_values[action] = target
+            target = reward + 1 + (1 - done) * self.gamma * next_pred[action]
+            q_values[action] += target
 
             error = abs(q_values[action] - target)
             self.memory.update_tree(idx, error)
@@ -267,7 +270,7 @@ def main():
             state = next_state
             # step += reward
             if done:
-                err_list.append(np.mean(err)*100)
+                err_list.append(np.mean(err))
                 step += reward
                 print("Episode: {0}\nEpsilon: {1}\tScore: {2}".format(curr_ep, rtm_agent.epsilon, step))
                 score_log.add_score(step,

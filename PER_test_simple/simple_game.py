@@ -20,7 +20,7 @@ class Cartpole_Simplified:
     def _check_terminal(self, state):
         if state in self.end_states:
             if state == self.end_states[0]:
-                self.reward = -2
+                self.reward = 0
                 self.done = True
             else:
                 self.reward = 2

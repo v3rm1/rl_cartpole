@@ -30,8 +30,8 @@ class QRegressionTsetlinMachine():
 	def fit(self, X, Y, epochs=100, incremental=True):
 		number_of_examples = X.shape[0]
 
-		self.max_y = (np.ceil(self.reward * (1 - np.power(self.gamma, self.max_score)) / ((1 - self.gamma)))) if self.gamma<1 else self.max_score
-		self.min_y = -1 * self.max_y
+		self.max_y = (self.reward * (1 - np.power(self.gamma, self.max_score)) / ((1 - self.gamma))) if self.gamma<1 else self.max_score
+		self.min_y = 0 if self.gamma < 1 else -1 * self.max_y
 
 		if self.rtm == None:
 			self.number_of_features = X.shape[1]*2
@@ -58,8 +58,8 @@ class QRegressionTsetlinMachine():
 
 	def predict(self, X):
 		number_of_examples = X.shape[0]
-		self.max_y = (np.ceil(self.reward * (1 - np.power(self.gamma, self.max_score)) / ((1 - self.gamma)))) if self.gamma<1 else self.max_score
-		self.min_y = -1 * self.max_y
+		self.max_y = (self.reward * (1 - np.power(self.gamma, self.max_score)) / ((1 - self.gamma))) if self.gamma<1 else self.max_score
+		self.min_y = 0 if self.gamma < 1 else -1 * self.max_y
 		if self.rtm == None:
 			self.number_of_features = X.shape[1]*2
 			self.number_of_patches = 1
