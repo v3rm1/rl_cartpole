@@ -54,9 +54,8 @@ class ScoreLogger:
         avg_score = np.mean(self.scores)
         # print("Scores:\nmin: {0}\tmax: {1}\tavg: {2}".format(np.min(self.scores), np.max(self.scores), np.mean(self.scores)))
         if avg_score >= AVG_SCORE and len(self.scores) >= consecutive_runs:
-            solve_score = run - consecutive_runs
-            print("Solved in {0} runs of {1} total runs".format(
-                solve_score, run))
+            # solve_score = (consecutive_runs - run) * 100 / (run + 1)  
+            # print("Solved in {0} runs of {1} total runs".format(solve_score, run))
             self._save_csv(SCORE_CSV, score)
             self._save_png(input_scores=SCORE_CSV,
                            output_img=SCORE_PNG,
@@ -72,7 +71,7 @@ class ScoreLogger:
                            sedf_beta=sedf_beta,
                            sedf_delta=sedf_delta,
                            edf_epsilon_decay=edf_epsilon_decay)
-            exit()
+            # exit()
 
     def _save_csv(self, path, score):
         """

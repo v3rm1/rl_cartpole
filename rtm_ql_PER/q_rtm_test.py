@@ -113,7 +113,10 @@ class RTMQL:
             return a
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
         print("Q value based Action: {}".format(np.argmax(q_values)))
-        return 0 if q_values[0] > 0 else 1
+        if q_values[0] != q_values[1]:
+            return np.argmax(q_values)
+        else:
+            return 0 if q_values[0] > 0 else 1
 
     def experience_replay(self, episode):
 
@@ -127,14 +130,15 @@ class RTMQL:
         next_states = np.vstack(batch[3])
         done_list = batch[4]
         for idx, state, action, reward, next_state, done in zip(idxs, states, actions, rewards, next_states, done_list):
+        q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+        next_pred = [self.agent_1_target.predict(next_state), self.agent_2_target.predict(next_state)]
             if done:
                 q_update = reward
             if not done:
-                q_update = self.learning_rate * ( reward + self.gamma * np.max([self.agent_1.predict(next_state), self.agent_2.predict(next_state)]) - np.max([self.agent_1.predict(state), self.agent_2.predict(state)]) )
-            q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+                q_update = self.learning_rate * ( reward + self.gamma * np.max(q_values) - np.max(next_pred) )
             # print("Q Values: {}".format(q_values))
             q_values[action] += q_update
-            next_pred = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
+            
             target = reward + (1 - done) * self.gamma * next_pred[action]
             # q_values[action] += target
             error = abs(q_values[action] - target)

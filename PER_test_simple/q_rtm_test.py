@@ -34,6 +34,7 @@ class RTMQL:
         self.max_score = config['game_params']['max_score']
 
         self.gamma = config['learning_params']['gamma']
+        self.learning_rate = config['learning_params']['learning_rate']
         
         self.weighted_clauses = config['qrtm_params']['weighted_clauses']
         self.incremental = config['qrtm_params']['incremental']
@@ -84,7 +85,7 @@ class RTMQL:
 
     def tm_model(self):
         self.tm_agent = QRegressionTsetlinMachine(number_of_clauses=self.number_of_clauses, T=self.T, s=self.s, reward=self.reward, gamma=self.gamma, max_score=self.max_score, number_of_actions=self.action_space, weighted_clauses=self.weighted_clauses)
-        self.tm_agent.number_of_patches = 2
+        self.tm_agent.number_of_patches = 1
         self.tm_agent.number_of_ta_chunks = int(((self.number_of_features - 1) / 32) + 1)
         self.tm_agent.number_of_features = self.number_of_features
         return self.tm_agent
@@ -96,9 +97,9 @@ class RTMQL:
         print("Target Q_Value: {}".format(target_q))
         old_q = q_values[action]
         if done:
-            q_update = reward + 1
+            q_update = reward
         if not done:
-            q_update = reward + 1 + self.gamma * target_q[action]
+            q_update = self.learning_rate * ( reward + self.gamma * target_q[action] - q_values[action] )
         
         q_values[action] += q_update
 
@@ -117,7 +118,12 @@ class RTMQL:
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
         print("Agent Predictions: {}".format(q_values))
         # print("Q value based Action: {}".format(np.argmax(q_values)))
-        return 0 if q_values[0] > 0 else 1
+
+        # TODO: Figure out why this hack is necessary. Why are the agents consistently predicting the same values even after training?
+        if q_values[0] != q_values[1]:
+            return np.argmax(q_values)
+        else:
+            return 0 if q_values[0] > 0 else 1
 
     def experience_replay(self, episode):
 
@@ -131,16 +137,17 @@ class RTMQL:
         next_states = np.vstack(batch[3])
         done_list = batch[4]
         for idx, state, action, reward, next_state, done in zip(idxs, states, actions, rewards, next_states, done_list):
-            if done:
-                q_update = reward + 1
-            if not done:
-                q_update = reward  + 1 + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
-            q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
-            # print("Q Values: {}".format(q_values))
-            # q_values[action] = q_update
             next_pred = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
-            target = reward + 1 + (1 - done) * self.gamma * next_pred[action]
-            q_values[action] += target
+            q_values = [self.agent_1_target.predict(state), self.agent_2_target.predict(state)]
+            if done:
+                q_update = reward
+            if not done:
+                
+                q_update = self.learning_rate * (reward + self.gamma * np.max(next_pred) - np.max(q_values))
+            q_values[action] += q_update
+            print("Q Values: {}".format(q_values))
+            target = reward + (1 - done) * self.gamma * np.max(next_pred)
+            # q_values[action] += target
 
             error = abs(q_values[action] - target)
             self.memory.update_tree(idx, error)
