@@ -130,8 +130,8 @@ class RTMQL:
         next_states = np.vstack(batch[3])
         done_list = batch[4]
         for idx, state, action, reward, next_state, done in zip(idxs, states, actions, rewards, next_states, done_list):
-        q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
-        next_pred = [self.agent_1_target.predict(next_state), self.agent_2_target.predict(next_state)]
+            q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+            next_pred = [self.agent_1_target.predict(next_state), self.agent_2_target.predict(next_state)]
             if done:
                 q_update = reward
             if not done:
