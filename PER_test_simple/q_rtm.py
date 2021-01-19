@@ -6,7 +6,7 @@ from pyTsetlinMachine.tm import _lib
 class QRegressionTsetlinMachine():
 	def __init__(self, number_of_clauses, T, s, boost_true_positive_feedback=1, number_of_state_bits=8, weighted_clauses=False, s_range=False, reward=1, gamma=0.9, max_score=100, number_of_actions=2):
 		self.number_of_clauses = number_of_clauses
-		self.number_of_clause_chunks = (number_of_clauses-1)/32 + 1
+		self.number_of_clause_chunks = int((number_of_clauses-1)/32 + 1)
 		self.number_of_state_bits = number_of_state_bits
 		self.T = int(T)
 		self.s = s
@@ -56,7 +56,7 @@ class QRegressionTsetlinMachine():
 
 		return
 
-	def predict(self, X):
+	def predict(self, X, epochs=100):
 		number_of_examples = X.shape[0]
 		self.max_y = (self.reward * (1 - np.power(self.gamma, self.max_score)) / ((1 - self.gamma))) if self.gamma<1 else self.max_score
 		self.min_y = 0 if self.gamma < 1 else -1 * self.max_y
@@ -72,4 +72,13 @@ class QRegressionTsetlinMachine():
 	
 		Y = np.zeros(number_of_examples, dtype=np.int32)
 		_lib.tm_predict_regression(self.rtm, self.encoded_X, Y, number_of_examples)
+		
+
+		if self.max_y == self.max_score:
+			Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)*self.T).astype(np.int32)
+		else:
+			Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)).astype(np.int32)
+		_lib.tm_fit_regression(self.rtm, self.encoded_X, Ym, number_of_examples, epochs)
+
+
 		return (1.0*(Y[0])*(self.max_y - self.min_y)/(self.T) + self.min_y) if self.max_y == self.max_score else (1.0*(Y[0])*(self.max_y - self.min_y) + self.min_y)

@@ -93,7 +93,7 @@ class RTMQL:
     def memorize(self, state, action, reward, next_state, done):
         q_values = [np.random.uniform(0,1), np.random.uniform(0,1)] if self.epsilon > 0.5 else [0, 0]
         q_values = [q_values[0] + self.agent_1.predict(state), q_values[1] + self.agent_2.predict(state)]
-        target_q = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
+        target_q = [self.agent_1_target.predict(next_state), self.agent_2_target.predict(next_state)]
         print("Target Q_Value: {}".format(target_q))
         old_q = q_values[action]
         if done:

@@ -37,6 +37,7 @@ class RTMQL:
         self.max_score = config['game_params']['max_score']
 
         self.gamma = config['learning_params']['gamma']
+        self.learning_rate = config['learning_params']['learning_rate']
         
         self.weighted_clauses = config['qrtm_params']['weighted_clauses']
         self.incremental = config['qrtm_params']['incremental']
@@ -93,7 +94,10 @@ class RTMQL:
             return a
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
         # print("Q value based Action: {}".format(np.argmax(q_values)))
-        return np.argmax(q_values)
+        if q_values[0] != q_values[1]:
+            return np.argmax(q_values)
+        else:
+            return 0 if q_values[0] > 0 else 1
 
     def experience_replay(self, episode):
         if len(self.memory) < self.replay_batch:
@@ -101,10 +105,11 @@ class RTMQL:
         batch = random.sample(self.memory, self.replay_batch)
         # batch = list(starmap(self.memory.pop, repeat((), self.replay_batch)))
         for state, action, reward, next_state, done in batch:
+            q_values = [np.random.random() + self.agent_1.predict(state), np.random.random() + self.agent_2.predict(state)]
+            target_q = [np.random.random() + self.agent_1.predict(next_state), np.random.random() + self.agent_2.predict(next_state)]
             q_update = reward
             if not done:
-                q_update = reward + self.gamma * np.amax([self.agent_1.predict(next_state), self.agent_2.predict(next_state)])
-            q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+                q_update = self.learning_rate * ( reward + self.gamma * target_q[action] - q_values[action] )
             # print("Q Values: {}".format(q_values))
             q_values[action] = q_update
             self.agent_1.fit(state, q_values[0], incremental=self.incremental)
