@@ -4,7 +4,7 @@ import os
 from pyTsetlinMachine.tm import _lib
 
 class QRegressionTsetlinMachine():
-	def __init__(self, number_of_clauses, T, s, boost_true_positive_feedback=1, number_of_state_bits=8, weighted_clauses=False, s_range=False, reward=1, gamma=0.9, max_score=100, number_of_actions=2):
+	def __init__(self, number_of_clauses, T, s, boost_true_positive_feedback=0, number_of_state_bits=8, weighted_clauses=False, s_range=False, reward=1, gamma=0.9, max_score=100, number_of_actions=2):
 		self.number_of_clauses = number_of_clauses
 		self.number_of_clause_chunks = int((number_of_clauses-1)/32 + 1)
 		self.number_of_state_bits = number_of_state_bits
@@ -50,7 +50,7 @@ class QRegressionTsetlinMachine():
 		# 	Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)*self.T).astype(np.int32)
 		# else:
 		#   Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)).astype(np.int32)
-		Ym = np.ascontiguousarray(Y[0] * self.T).astype(np.int32)
+		Ym = np.ascontiguousarray(Y * self.T).astype(np.int32)
 
 		_lib.tm_encode(Xm, self.encoded_X, number_of_examples, self.number_of_features//2, 1, 1, self.number_of_features//2, 1, 1, 0)
 		
