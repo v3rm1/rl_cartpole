@@ -93,27 +93,36 @@ class RTMQL:
             # print("Randomized Action: {}".format(a))
             return a
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+        print("Predicted Q-values: {}".format(q_values))
         # print("Q value based Action: {}".format(np.argmax(q_values)))
-        if q_values[0] != q_values[1]:
-            return np.argmax(q_values)
-        else:
-            return 0 if q_values[0] > 0 else 1
+        
+        return np.argmax(q_values)
+        ### HACK: UNMOTIVATED, CONSIDER REMOVING
+        # if q_values[0] != q_values[1]:
+        #     return np.argmax(q_values)
+        # else:
+        #     return 0 if q_values[0] > 0 else 1
 
     def experience_replay(self, episode):
         if len(self.memory) < self.replay_batch:
             return [0,0]
         batch = random.sample(self.memory, self.replay_batch)
-        # batch = list(starmap(self.memory.pop, repeat((), self.replay_batch)))
         for state, action, reward, next_state, done in batch:
-            q_values = [np.random.random() + self.agent_1.predict(state), np.random.random() + self.agent_2.predict(state)]
-            target_q = [np.random.random() + self.agent_1.predict(next_state), np.random.random() + self.agent_2.predict(next_state)]
+            if self.epsilon > self.epsilon_min * 2:
+                q_values = [np.random.random() + self.agent_1.predict(state), np.random.random() + self.agent_2.predict(state)]
+                target_q = [np.random.random() + self.agent_1.predict(next_state), np.random.random() + self.agent_2.predict(next_state)]
+            else:
+                q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
+                target_q = [self.agent_1.predict(next_state), self.agent_2.predict(next_state)]
+            print("Q-Values: {}\nTarget: {}".format(q_values, target_q))
             q_update = reward
             if not done:
-                q_update = self.learning_rate * ( reward + self.gamma * target_q[action] - q_values[action] )
+                q_update = self.learning_rate * ( reward + self.gamma * np.amax(target_q) - q_values[action] )
             # print("Q Values: {}".format(q_values))
-            q_values[action] = q_update
-            self.agent_1.fit(state, q_values[0], incremental=self.incremental)
-            self.agent_2.fit(state, q_values[1], incremental=self.incremental)
+            q_values[action] += q_update
+
+            self.agent_1.fit(state, q_values[0], incremental=self.incremental, epochs=10)
+            self.agent_2.fit(state, q_values[1], incremental=self.incremental, epochs=10)
         if self.eps_decay == "SEDF":
             # STRETCHED EXPONENTIAL EPSILON DECAY
             self.epsilon = self.stretched_exp_eps_decay(episode)

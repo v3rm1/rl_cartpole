@@ -30,7 +30,7 @@ class QRegressionTsetlinMachine():
 	def fit(self, X, Y, epochs=100, incremental=True):
 		number_of_examples = X.shape[0]
 
-		self.max_y = (self.reward * (1 - np.power(self.gamma, self.max_score)) / ((1 - self.gamma))) if self.gamma<1 else self.max_score
+		self.max_y = (self.reward * (1 - np.power(self.gamma, self.max_score)) / ((1 - self.gamma))) if self.gamma < 1 else self.max_score
 		self.min_y = 0 if self.gamma < 1 else -1 * self.max_y
 
 		if self.rtm == None:
@@ -45,10 +45,12 @@ class QRegressionTsetlinMachine():
 		self.encoded_X = np.ascontiguousarray(np.empty(int(number_of_examples * self.number_of_ta_chunks), dtype=np.uint32))
 
 		Xm = np.ascontiguousarray(X.flatten()).astype(np.uint32)
-		if self.max_y == self.max_score:
-			Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)*self.T).astype(np.int32)
-		else:
-			Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)).astype(np.int32)
+		# NOTE: The following is the standard linear computation of Ym for an RTM
+		# if self.max_y == self.max_score:
+		# 	Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)*self.T).astype(np.int32)
+		# else:
+		#   Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)).astype(np.int32)
+		Ym = np.ascontiguousarray(Y[0] * self.T).astype(np.int32)
 
 		_lib.tm_encode(Xm, self.encoded_X, number_of_examples, self.number_of_features//2, 1, 1, self.number_of_features//2, 1, 1, 0)
 		
@@ -73,12 +75,6 @@ class QRegressionTsetlinMachine():
 		Y = np.zeros(number_of_examples, dtype=np.int32)
 		_lib.tm_predict_regression(self.rtm, self.encoded_X, Y, number_of_examples)
 		
-
-		if self.max_y == self.max_score:
-			Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)*self.T).astype(np.int32)
-		else:
-			Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)).astype(np.int32)
-		_lib.tm_fit_regression(self.rtm, self.encoded_X, Ym, number_of_examples, epochs)
-
-
-		return (1.0*(Y[0])*(self.max_y - self.min_y)/(self.T) + self.min_y) if self.max_y == self.max_score else (1.0*(Y[0])*(self.max_y - self.min_y) + self.min_y)
+		return Y[0]/self.T
+		# NOTE: The following is the standard linear interpolation function used by the RTM
+		# return (1.0*(Y[0])*(self.max_y - self.min_y)/(self.T) + self.min_y) if self.max_y == self.max_score else (1.0*(Y[0])*(self.max_y - self.min_y) + self.min_y)

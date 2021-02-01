@@ -94,13 +94,15 @@ class RTMQL:
         q_values = [np.random.uniform(0,1), np.random.uniform(0,1)] if self.epsilon > 0.5 else [0, 0]
         q_values = [q_values[0] + self.agent_1.predict(state), q_values[1] + self.agent_2.predict(state)]
         target_q = [self.agent_1_target.predict(next_state), self.agent_2_target.predict(next_state)]
-        print("Target Q_Value: {}".format(target_q))
+        print("Q_Value: {}\tTarget Q_Value: {}".format(q_values, target_q))
         old_q = q_values[action]
         if done:
+            print("Reward:{}".format(reward))
             q_update = reward
         if not done:
+            print("Reward:{}".format(reward))
             q_update = self.learning_rate * ( reward + self.gamma * target_q[action] - q_values[action] )
-        
+            print("Q_Update:{}".format(q_update))
         q_values[action] += q_update
 
         error = abs(old_q - target_q[action])
@@ -117,13 +119,13 @@ class RTMQL:
             return a
         q_values = [self.agent_1.predict(state), self.agent_2.predict(state)]
         print("Agent Predictions: {}".format(q_values))
-        # print("Q value based Action: {}".format(np.argmax(q_values)))
-
+        print("Q value based Action: {}".format(np.argmax(q_values)))
+        return np.argmax(q_values)
         # TODO: Figure out why this hack is necessary. Why are the agents consistently predicting the same values even after training?
-        if q_values[0] != q_values[1]:
-            return np.argmax(q_values)
-        else:
-            return 0 if q_values[0] > 0 else 1
+        # if q_values[0] != q_values[1]:
+        #     return np.argmax(q_values)
+        # else:
+        #     return 0 if q_values[0] > 0 else 1
 
     def experience_replay(self, episode):
 
@@ -274,6 +276,12 @@ def main():
             next_state = np.reshape(next_state,
                 [1, feature_length])
             err.append(rtm_agent.memorize(state, action, reward, next_state, done))
+            # NOTE: Testing selective memory based training
+            # if rtm_agent.epsilon > 5 * rtm_agent.epsilon_min:
+            #     err.append(rtm_agent.memorize(state, action, reward, next_state, done))
+            # else:
+            #     err.append(0)
+
             state = next_state
             # step += reward
             if done:

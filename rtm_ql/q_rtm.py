@@ -50,8 +50,8 @@ class QRegressionTsetlinMachine():
 		else:
 			Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)).astype(np.int32)
 
-		_lib.tm_encode(Xm, self.encoded_X, number_of_examples, self.number_of_features//2, 1, 1, self.number_of_features//2, 1, 1, 0)
-		
+		_lib.tm_encode(Xm, self.encoded_X, number_of_examples, self.number_of_features//4, 1, 1, self.number_of_features//4, 1, 1, 0)
+		print("Fitting X={} to Y={}".format(Xm, Ym))
 		_lib.tm_fit_regression(self.rtm, self.encoded_X, Ym, number_of_examples, epochs)
 
 		return
@@ -68,16 +68,18 @@ class QRegressionTsetlinMachine():
 		self.encoded_X = np.ascontiguousarray(np.empty(int(number_of_examples * self.number_of_patches * self.number_of_ta_chunks), dtype=np.uint32))
 
 		Xm = np.ascontiguousarray(X.flatten()).astype(np.uint32)
-		_lib.tm_encode(Xm, self.encoded_X, number_of_examples, self.number_of_features//2, 1, 1, self.number_of_features//2, 1, 1, 0)
+		_lib.tm_encode(Xm, self.encoded_X, number_of_examples, self.number_of_features//4, 1, 1, self.number_of_features//4, 1, 1, 0)
 	
 		Y = np.zeros(number_of_examples, dtype=np.int32)
 		_lib.tm_predict_regression(self.rtm, self.encoded_X, Y, number_of_examples)
+		print("Prediction by tm: {}".format(Y))
 		
 
-		if self.max_y == self.max_score:
-			Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)*self.T).astype(np.int32)
-		else:
-			Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)).astype(np.int32)
-		_lib.tm_fit_regression(self.rtm, self.encoded_X, Ym, number_of_examples, epochs)
+		# if self.max_y == self.max_score:
+		# 	Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)*self.T).astype(np.int32)
+		# 	print("Y: {}\tYm: {}".format(Y, Ym))
+		# else:
+		# 	Ym = np.ascontiguousarray((Y - self.min_y)/(self.max_y - self.min_y)).astype(np.int32)
+		# _lib.tm_fit_regression(self.rtm, self.encoded_X, Ym, number_of_examples, epochs)
 
 		return (1.0*(Y[0])*(self.max_y - self.min_y)/(self.T) + self.min_y) if self.max_y == self.max_score else (1.0*(Y[0])*(self.max_y - self.min_y) + self.min_y)

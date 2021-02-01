@@ -1,5 +1,5 @@
 import numpy as np
-# import gym
+import gym
 
 
 class CustomDiscretizer:
@@ -100,15 +100,15 @@ class CustomDiscretizer:
         return [op_1, op_2, op_3, op_4]
 
 
-# def test():
-#     env = gym.make("CartPole-v0")
-#     state = env.reset()
-#     print("Original State: {}".format(state))
-#     disc = CustomDiscretizer()
-#     disc_state = disc.cartpole_binarizer(state, n_bins=4)
-#     print("Discretized State: {}".format(disc_state))
-#     print("END")
+def test():
+    env = gym.make("CartPole-v0")
+    state = env.reset()
+    print("Original State: {}".format(state))
+    disc = CustomDiscretizer()
+    disc_state = disc.cartpole_binarizer(state, n_bins=16, bin_type="U")
+    print("Discretized State: {}".format(disc_state))
+    print("END")
 
 
-# if __name__ == "__main__":
-#     test()
+if __name__ == "__main__":
+    test()
