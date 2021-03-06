@@ -11,6 +11,8 @@ import gym
 import tensorflow as tf
 from tensorflow import keras
 
+
+
 # Reward decay
 GAMMA = 0.9
 # Learning Rate
@@ -18,7 +20,7 @@ ALPHA = 0.001
 
 # Experience-Replay Memory Parameters
 MEMORY_SIZE = 100000
-BATCH_SIZE = 20
+BATCH_SIZE = 25
 
 # Exploration-Exploitation Parameters
 EPSILON_MIN = 0.01
@@ -26,7 +28,7 @@ EPSILON_MAX = 1
 EPSILON_DECAY = 0.9
 
 # Number Of Episodes to run
-EPISODES = 1000
+EPISODES = 2500
 
 class DQNAgent:
     """ """
@@ -108,7 +110,7 @@ def main():
         done = False
         while not done:
             step += 1
-            env.render()
+            # env.render()
             action = dqn_agent.act(state)
             next_state, reward, done, info = env.step(action)
             reward = reward if not done else -reward

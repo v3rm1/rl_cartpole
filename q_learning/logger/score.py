@@ -125,7 +125,7 @@ class ScoreLogger:
         plt.ylabel(y_label)
 
         if show_legend:
-            plt.legend(loc="upper right")
+            plt.legend(loc="upper left")
 
         plt.savefig(output_img, bbox_inches="tight")
         plt.close()
